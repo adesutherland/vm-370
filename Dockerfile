@@ -20,8 +20,7 @@ COPY build.sh hercules.conf start_vm370.sh ./
 
 RUN chmod +x build.sh && \
     chmod +x start_vm370.sh && \
-	chmod -x hercules.conf && \
-	mkdir io
+	chmod -x hercules.conf
 
 RUN wget http://www.smrcc.org.uk/members/g4ugm/vm-370/vm370sixpack-1_3_Beta3.zip 
 
@@ -42,5 +41,5 @@ COPY --from=0 /opt/hercules/vm370/* ./
 
 COPY --from=0 /usr/local/bin/herccontrol /usr/local/bin/herccontrol
 
-EXPOSE      3270 8038
+EXPOSE      3270 8038 3505
 ENTRYPOINT  ["/opt/hercules/vm370/start_vm370.sh"]

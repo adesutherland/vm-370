@@ -18,7 +18,6 @@ herccontrol "exit"
 cd ..
 
 # Move Disks
-# rm vm3350-* | true
 mv sixpack/disks/vm3350-* .
 
 # Compress disks

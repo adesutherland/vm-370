@@ -60,7 +60,7 @@ jobs:
            docker cp "dummy:/opt/hercules/vm370/vm3350-5.540.cckd" "${{ runner.temp }}/vm370/vm3350-5.540.cckd"
            docker cp "dummy:/opt/hercules/vm370/vm3350-6.6f0.cckd" "${{ runner.temp }}/vm370/vm3350-6.6f0.cckd"
            docker rm -f dummy
-           zip -r vm370.zip "${{ runner.temp }}/vm370"
+           zip --no-dir-entries vm370.zip "${{ runner.temp }}/vm370"
            ls "${{ runner.temp }}/vm370"
 
       - name: Create Release

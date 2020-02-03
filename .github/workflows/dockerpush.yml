@@ -53,7 +53,7 @@ jobs:
         run: |
            mkdir -p "${{ runner.temp }}/vm370"
            docker create -ti --name dummy image bash
-           docker cp "dummy:/opt/hercules/vm37/*" "${{ runner.temp }}/vm370"
+           docker cp "dummy:/opt/hercules/vm370/*" "${{ runner.temp }}/vm370"
            docker rm -f dummy
            zip -r vm370.zip vm370
            ls "${{ runner.temp }}/vm370"

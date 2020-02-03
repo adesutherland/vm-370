@@ -47,17 +47,22 @@ jobs:
 
       - name: Build image
         run: docker build . --file Dockerfile --tag image
-      
+
       - name: Extract /opt/hercules/vm370 files
         if: startsWith(github.ref, 'refs/tags/')
         run: |
            mkdir -p "${{ runner.temp }}/vm370"
            docker create -ti --name dummy image bash
-           docker cp "dummy:/opt/hercules/vm370/*" "${{ runner.temp }}/vm370"
+           docker cp "dummy:/opt/hercules/vm370/vm3350-1.141.cckd" "${{ runner.temp }}/vm370/vm3350-1.141.cckd"
+           docker cp "dummy:/opt/hercules/vm370/vm3350-2.241.cckd" "${{ runner.temp }}/vm370/vm3350-2.241.cckd"
+           docker cp "dummy:/opt/hercules/vm370/vm3350-3.34f.cckd" "${{ runner.temp }}/vm370/vm3350-3.34f.cckd"
+           docker cp "dummy:/opt/hercules/vm370/vm3350-4.440.cckd" "${{ runner.temp }}/vm370/vm3350-4.440.cckd"
+           docker cp "dummy:/opt/hercules/vm370/vm3350-5.540.cckd" "${{ runner.temp }}/vm370/vm3350-5.540.cckd"
+           docker cp "dummy:/opt/hercules/vm370/vm3350-6.6f0.cckd" "${{ runner.temp }}/vm370/vm3350-6.6f0.cckd"           
            docker rm -f dummy
            zip -r vm370.zip vm370
            ls "${{ runner.temp }}/vm370"
-              
+
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/')
         id: create_release
@@ -72,16 +77,16 @@ jobs:
 
       - name: Upload Release Asset
         if: startsWith(github.ref, 'refs/tags/')
-        id: upload-release-asset-ubuntu 
+        id: upload-release-asset-ubuntu
         uses: actions/upload-release-asset@v1.0.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }} 
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./vm370.zip
           asset_name: vm370.zip
-          asset_content_type: application/zip      
-      
+          asset_content_type: application/zip
+
       - name: Log into registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
 

@@ -16,11 +16,10 @@ RUN unzip HercControl-Ubuntu.zip && \
 	rm -r HercControl-Ubuntu && \
 	rm HercControl-Ubuntu.zip
 
-COPY build.sh hercules.conf start_vm370.sh sanity_test.sh ./
+COPY build.sh hercules.conf start_vm370.sh ./
 
 RUN chmod +x build.sh && \
     chmod +x start_vm370.sh && \
-    chmod +x sanity_test.sh && \
 	  chmod -x hercules.conf
 
 RUN wget http://www.smrcc.org.uk/members/g4ugm/vm-370/vm370sixpack-1_3_Beta3.zip

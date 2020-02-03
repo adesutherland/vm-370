@@ -2,9 +2,9 @@
 
 FROM	ubuntu:latest
 
-RUN	apt-get update 
+RUN	apt-get update
 RUN apt-get install --no-install-recommends -y unzip wget ca-certificates
-RUN apt-get install --no-install-recommends -y hercules 
+RUN apt-get install --no-install-recommends -y hercules
 
 WORKDIR     /opt/hercules/vm370
 
@@ -15,20 +15,20 @@ RUN unzip HercControl-Ubuntu.zip && \
     cp HercControl-Ubuntu/herccontrol /usr/local/bin && \
 	rm -r HercControl-Ubuntu && \
 	rm HercControl-Ubuntu.zip
-	
-COPY build.sh hercules.conf start_vm370.sh ./
+
+COPY build.sh hercules.conf start_vm370.sh sanity_test.sh ./
 
 RUN chmod +x build.sh && \
     chmod +x start_vm370.sh && \
-	chmod -x hercules.conf
+    chmod +x sanity_test.sh && \
+	  chmod -x hercules.conf
 
-RUN wget http://www.smrcc.org.uk/members/g4ugm/vm-370/vm370sixpack-1_3_Beta3.zip 
+RUN wget http://www.smrcc.org.uk/members/g4ugm/vm-370/vm370sixpack-1_3_Beta3.zip
 
 RUN /opt/hercules/vm370/build.sh && \
     rm /opt/hercules/vm370/build.sh
 
-
-FROM ubuntu:latest  
+FROM ubuntu:latest
 
 RUN	apt-get update && \
     apt-get install --no-install-recommends -y hercules c3270 zip unzip netcat && \

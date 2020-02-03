@@ -4,7 +4,7 @@
 # Exit of there is an error
 set -e
 
-# Unzip Sixpack 
+# Unzip Sixpack
 unzip -o -d sixpack vm370sixpack-1_3_Beta3.zip
 rm vm370sixpack-1_3_Beta3.zip
 
@@ -28,15 +28,3 @@ herccontrol "exit"
 
 # Erase the rest of the six pack
 rm -r sixpack
-
-# Sanity Check
-hercules -f hercules.conf -d >/dev/null 2>/dev/null &
-herccontrol "ipl 141" -w "USER DSC LOGOFF AS AUTOLOG1"
-herccontrol "/cp disc" -w "^VM/370 Online"
-herccontrol "/logon cmsuser cmsuser" -w "^CMS VERSION"
-herccontrol "/" -w "^Ready"
-herccontrol "/listf * * a" -w "^Ready"
-herccontrol "/logoff" -w "^VM/370 Online"
-herccontrol "/logon operator operator" -w "RECONNECTED AT"
-herccontrol "/shutdown" -w "^HHCCP011I"
-herccontrol "exit"

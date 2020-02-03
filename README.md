@@ -1,7 +1,6 @@
 # vm-370
 Docker container providing an emulated S/370 mainframe (Hercules) running VM/370 based on the six-pack distribution.
 
-
 # Links
 - Six pack distribution - http://www.smrcc.org.uk/members/g4ugm/VM370.htm
 - Hercules home page - http://www.hercules-390.eu/

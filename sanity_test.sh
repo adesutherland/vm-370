@@ -1,7 +1,7 @@
 #!/bin/sh
 # Sanity Test
 set -e
-# hercules -f hercules.conf -d >/dev/null 2>/dev/null &
+hercules -f hercules.conf -d >/dev/null 2>/dev/null &
 herccontrol "ipl 141" -w "USER DSC LOGOFF AS AUTOLOG1"
 herccontrol "/cp disc" -w "^VM/370 Online"
 herccontrol "/logon cmsuser cmsuser" -w "^CMS VERSION"

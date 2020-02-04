@@ -1,4 +1,4 @@
-name: Docker
+name: DockerPublish
 
 on:
   push:
@@ -10,29 +10,10 @@ on:
     tags:
       - v*
 
-  # Run tests for any PRs.
-  pull_request:
-
 env:
   IMAGE_NAME: host
 
 jobs:
-  # Run tests.
-  # See also https://docs.docker.com/docker-hub/builds/automated-testing/
-#  test:
-#    runs-on: ubuntu-latest
-#
-#    steps:
-#      - uses: actions/checkout@v2
-#
-#      - name: Run tests
-#        run: |
-#          if [ -f docker-compose.test.yml ]; then
-#            docker-compose --file docker-compose.test.yml build
-#            docker-compose --file docker-compose.test.yml run sut
-#          else
-#            docker build . --file Dockerfile
-#          fi
 
   # Push image to GitHub Package Registry and create release with vm370 directory contents
   push:

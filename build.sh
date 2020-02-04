@@ -4,30 +4,16 @@
 # Exit of there is an error
 set -e
 
-# Unzip Sixpack
-unzip -o -d sixpack vm370sixpack-1_3_Beta3.zip
-rm vm370sixpack-1_3_Beta3.zip
-
-# Remove Shadow Files
-cd sixpack
-rm hercules.rc # Don't want to IPL
-echo "HTTPPORT 8038" >> sixpack.conf # Turn on the webconsole
-hercules -f sixpack.conf -d >/dev/null 2>/dev/null &
-herccontrol "sf-* force" -w "HHCCD092I"
-herccontrol "exit"
-cd ..
-
-# Move Disks
-mv sixpack/disks/vm3350-* .
+# Get the disks
+wget -nv https://github.com/adesutherland/vm-370/releases/download/v1.3.4/vm370.zip
+unzip vm370.zip
+rm vm370.zip
 
 # Compress disks
 hercules -f hercules.conf -d >/dev/null 2>/dev/null &
 herccontrol "sfc*" -w "HHCCD092I"
 herccontrol "sfk* 3" -w "HHCCD092I"
 herccontrol "exit"
-
-# Erase the rest of the six pack
-rm -r sixpack
 
 # Run sanity test
 hercules -f hercules.conf -d >/dev/null 2>/dev/null &

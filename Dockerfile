@@ -1,5 +1,4 @@
-# TODO
-
+# Dockerfile for the VM/370 Container
 FROM	ubuntu:latest
 
 RUN	apt-get update
@@ -8,25 +7,25 @@ RUN apt-get install --no-install-recommends -y hercules
 
 WORKDIR     /opt/hercules/vm370
 
-RUN wget https://github.com/adesutherland/HercControl/releases/download/v1.0.5/HercControl-Ubuntu.zip
-
+# HercControl
+RUN wget -nv https://github.com/adesutherland/HercControl/releases/download/v1.0.5/HercControl-Ubuntu.zip
 RUN unzip HercControl-Ubuntu.zip && \
     chmod +x HercControl-Ubuntu/herccontrol && \
     cp HercControl-Ubuntu/herccontrol /usr/local/bin && \
 	rm -r HercControl-Ubuntu && \
 	rm HercControl-Ubuntu.zip
 
+# Local Config files
 COPY build.sh hercules.conf start_vm370.sh ./
-
 RUN chmod +x build.sh && \
     chmod +x start_vm370.sh && \
 	  chmod -x hercules.conf
 
-RUN wget http://www.smrcc.org.uk/members/g4ugm/vm-370/vm370sixpack-1_3_Beta3.zip
-
+# Build & Sanity Test VM/370 Host
 RUN /opt/hercules/vm370/build.sh && \
     rm /opt/hercules/vm370/build.sh
 
+# Create the final Docker Image
 FROM ubuntu:latest
 
 RUN	apt-get update && \

@@ -8,7 +8,7 @@ RUN apt-get install --no-install-recommends -y hercules
 WORKDIR     /opt/hercules/vm370
 
 # HercControl
-RUN wget -nv https://github.com/adesutherland/HercControl/releases/download/v1.0.5/HercControl-Ubuntu.zip
+RUN wget -nv https://github.com/adesutherland/HercControl/releases/download/v1.1.0/HercControl-Ubuntu.zip
 RUN unzip HercControl-Ubuntu.zip && \
     chmod +x HercControl-Ubuntu/herccontrol && \
     cp HercControl-Ubuntu/herccontrol /usr/local/bin && \

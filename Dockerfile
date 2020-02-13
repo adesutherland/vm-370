@@ -7,14 +7,6 @@ RUN apt-get install --no-install-recommends -y hercules
 
 WORKDIR     /opt/hercules/vm370
 
-# HercControl
-RUN wget -nv https://github.com/adesutherland/HercControl/releases/download/v1.1.0/HercControl-Ubuntu.zip
-RUN unzip HercControl-Ubuntu.zip && \
-    chmod +x HercControl-Ubuntu/herccontrol && \
-    cp HercControl-Ubuntu/herccontrol /usr/local/bin && \
-	rm -r HercControl-Ubuntu && \
-	rm HercControl-Ubuntu.zip
-
 # Local Config files
 COPY build.sh hercules.conf start_vm370.sh ./
 RUN chmod +x build.sh && \
@@ -38,6 +30,7 @@ WORKDIR     /opt/hercules/vm370
 COPY --from=0 /opt/hercules/vm370/* ./
 
 COPY --from=0 /usr/local/bin/herccontrol /usr/local/bin/herccontrol
+COPY --from=0 /usr/local/bin/yata /usr/local/bin/yata
 
 EXPOSE      3270 8038 3505
 ENTRYPOINT  ["/opt/hercules/vm370/start_vm370.sh"]

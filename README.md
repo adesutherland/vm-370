@@ -4,7 +4,7 @@ Docker container providing an emulated S/370 mainframe (Hercules) running VM/370
 # Releases
 
 The Docker images are here
-    https://github.com/adesutherland/vm-370
+    https://hub.docker.com/repository/docker/adriansutherland/vm370
 
 See the release tab for Dockerfile build source and the VM/370 DASD files.
 

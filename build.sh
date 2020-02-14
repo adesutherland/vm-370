@@ -29,7 +29,7 @@ herccontrol "/logon operator operator" -w "RECONNECTED AT"
 herccontrol "/shutdown" -w "^HHCCP011I"
 
 # YATA - Ubuntu
-wget -nv https://github.com/adesutherland/yata/releases/download/v1.1.1/YATA-Ubuntu.zip
+wget -nv https://github.com/adesutherland/yata/releases/download/v1.1.2/YATA-Ubuntu.zip
 unzip YATA-Ubuntu.zip
 chmod +x YATA-Ubuntu/yata
 cp YATA-Ubuntu/yata /usr/local/bin
@@ -37,7 +37,7 @@ rm -r YATA-Ubuntu
 rm YATA-Ubuntu.zip
 
 # YATA - CMS
-wget -nv https://github.com/adesutherland/yata/releases/download/v1.1.1/YATA-CMS.zip
+wget -nv https://github.com/adesutherland/yata/releases/download/v1.1.2/YATA-CMS.zip
 unzip YATA-CMS.zip
 chmod +x YATA-CMS/cmsinstall.sh
 mkdir io

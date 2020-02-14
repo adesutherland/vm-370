@@ -8,7 +8,12 @@ The Docker images are here
 
 See the release tab for Dockerfile build source and the VM/370 DASD files.
 
+
+latest -> 1.3.7
+
 Version 1.3.4 corresponds to Six Pack 1.3 Beta 3.
+
+See changelog.txt for full version history
 
 
 # Links

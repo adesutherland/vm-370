@@ -36,7 +36,7 @@ cp YATA-Ubuntu/yata /usr/local/bin
 rm -r YATA-Ubuntu
 rm YATA-Ubuntu.zip
 
-# YATA - CMS
+# YATA CMS v 1.3.1 (Last version that works on GCCLIB pre-0.7.x)
 wget -nv https://github.com/adesutherland/yata/releases/download/v1.1.3/YATA-CMS.zip
 unzip YATA-CMS.zip
 chmod +x YATA-CMS/cmsinstall.sh
@@ -49,6 +49,20 @@ cd ..
 rm -r io
 rm -r YATA-CMS
 rm YATA-CMS.zip
+
+# GCCLIB (0.7.1)
+wget -nv https://github.com/adesutherland/CMS-370-GCCLIB/releases/download/v0.7.1/GCCLIB.zip
+unzip GCCLIB.zip
+chmod +x GCCLIB/cmsinstall.sh
+mkdir io
+cp GCCLIB/cmsinstall.sh io
+cp GCCLIB/gcclibbin.aws io
+cd io
+./cmsinstall.sh
+cd ..
+rm -r io
+rm -r GCCLIB
+rm GCCLIB.zip
 
 # Compress disks
 # hercules -f hercules.conf -d >/dev/null 2>/dev/null &

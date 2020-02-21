@@ -1,6 +1,7 @@
 VM/370 Docker Container Changelog
 =================================
 
+1.4.0 - Updated GCCLIB to Version 0.7.1 (VM/370 DASD)
 1.3.8 - Updated YATA to Version 1.1.3 (Container & VM/370 DASD)
 1.3.7 - Updated YATA to Version 1.1.2 (Container & VM/370 DASD)
 1.3.6 - Added YATA Version 1.1.1 on Container and VM/370 System Drive

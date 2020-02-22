@@ -78,6 +78,20 @@ rm -r io
 rm -r YATA-CMS
 rm YATA-CMS.zip
 
+# BREXX (2.1.9)
+wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/f0001/BREXX.zip
+unzip BREXX.zip
+chmod +x BREXX/cmsinstall.sh
+mkdir io
+cp BREXX/cmsinstall.sh io
+cp BREXX/brexxbin.aws io
+cd io
+./cmsinstall.sh
+cd ..
+rm -r io
+rm -r BREXX
+rm BREXX.zip
+
 # Compress disks
 # hercules -f hercules.conf -d >/dev/null 2>/dev/null &
 herccontrol "sfc*" -w "HHCCD092I"

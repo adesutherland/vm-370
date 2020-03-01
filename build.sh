@@ -50,8 +50,8 @@ rm -r io
 rm -r YATA-CMS
 rm YATA-CMS.zip
 
-# GCCLIB (0.7.2) - needs a version of YATA to download
-wget -nv https://github.com/adesutherland/CMS-370-GCCLIB/releases/download/v0.7.2/GCCLIB.zip
+# GCCLIB (0.7.3) - needs a version of YATA to download
+wget -nv https://github.com/adesutherland/CMS-370-GCCLIB/releases/download/v0.7.3/GCCLIB.zip
 unzip GCCLIB.zip
 chmod +x GCCLIB/cmsinstall.sh
 mkdir io
@@ -78,8 +78,8 @@ rm -r io
 rm -r YATA-CMS
 rm YATA-CMS.zip
 
-# BREXX (2.1.9)
-wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v2.1.9/BREXX.zip
+# CMS BREXX (0.9.1)
+wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v0.9.1/BREXX.zip
 unzip BREXX.zip
 chmod +x BREXX/cmsinstall.sh
 mkdir io

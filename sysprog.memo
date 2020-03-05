@@ -1,0 +1,399 @@
+*******************************************************************************
+VM/370 SixPack System Programming Notes
+ 
+Notes on generating the CMS nucleus, the CP nucleus, and the various saved
+systems and shared segments.  Thanks to Dave Wade and Kevin Leonard.
+ 
+Robert O'Hara, Redmond Washington, September 2010
+*******************************************************************************
+ 
+ 
+*******************************************************************************
+Steps for generating the CMS nucleus
+*******************************************************************************
+ 
+Login to MAINT (pw is CPCMS).  Then recompile what has changed.
+ 
+1. EXEC CMSACC to access the needed disks.  Then
+ 
+   acc 093 a
+   acc 191 g
+ 
+2. Update CMS macros and build CMSHRC MACLIB.  Skip if no maclib changes.
+ 
+   vmfmac cmshrc dmsmhrc
+ 
+3. Update and assemble CMS nucleus and modules.
+ 
+   hrcasm exec cmsasm
+ 
+   (OK for DMM* to fail, that is IPCS.)  Or
+ 
+   cmsasm module
+ 
+   to update and assemble a single module.
+ 
+4. Move the disks about to make the 190 the A disk.
+   cp spool prt *
+   cp spool pun *
+   access 190 a
+   access 093 b/b
+ 
+5. Copy the TEXT files to the A disk (190).  Rename those not part of the
+   nucleus or a MODULE to have a mode of A2.
+ 
+   hrcasm exec cmscpytx
+ 
+6. Generate CMS MODULEs that go on the S disk.  Note that you will get lots of
+   "INVALID CARD" messages:  don't worry about them.
+ 
+   hrcasm exec cmsgndmd
+ 
+7. Build the nucleus
+ 
+   vmfload cmsload dmshrc
+ 
+   This will punch an IPL deck to your reader.
+ 
+   PUN FILE nnnn  TO  MAINT    COPY 01 NOHOLD
+ 
+   Order the reader to bring the IPL deck to the front, then IPL the deck.
+ 
+   order reader nnnn
+   ipl 00c clear
+   DMSINI606R SYSTEM DISK ADDRESS = 190
+   DMSINI615R Y-DISK ADDRESS = 19e
+   DMSINI607R REWRITE THE NUCLEUS ? yes
+   DMSINI608R IPL DEVICE ADDRESS = 190
+   DMSINI609R NUCLEUS CYL ADDRESS = 59
+   DMSINI610R ALSO IPL CYLINDER 0 ? yes
+   DMSINI611R VERSION IDENTIFICATION =
+   DMSINI612R INSTALLATION HEADING =
+   CMS VERSION 6.0 - 06/07/08 11:35
+   ...
+   Ready; T=0.01/0.02 11:42:45
+ 
+   cp close prt
+ 
+   The print file you get here is the nucleus map.
+ 
+8. Save the CMS segment.  Your userid must have class E privileges.  MAINT has
+   class E privileges.
+ 
+   def stor 16m
+   ipl 190
+   acc (noprof
+   acc 093 b
+   acc 193 c
+   cmsxgen f00000 cmsseg             (for a saved system at 15MB)
+ 
+   ipl 190
+   savesys cms
+ 
+ 
+*******************************************************************************
+Steps for generating the CP Nucleus
+*******************************************************************************
+ 
+1. Login as MAINT.  Then
+ 
+   acc 094 a
+   acc 191 c
+ 
+2. Update CP macros and build DMKHRC MACLIB.  Skip if no maclib changes.
+ 
+   vmfmac dmkhrc dmkhrc
+ 
+3. VMFASM module DMKHRC for whatever you want to change.
+ 
+4. Build the nucleus:
+ 
+   spool PUN *
+   spool PRT *
+   vmfload cpload dmkhrc
+   ipl 00c clear
+ 
+5. After the "Nucleus Loaded" message, re-IPL CMS, then
+   close rdr
+   readcard cpnuc map
+ 
+6. Logoff MAINT, shutdown and re-IPL the system.
+ 
+ 
+*******************************************************************************
+Steps for generating CMS/DOS and VSAM segments
+*******************************************************************************
+ 
+1.  Login as MAINT.
+ 
+2.  Generate INSTVSAM.
+ 
+    def stor 16m
+    ipl 190
+    access (noprof
+    set ldrtbls 1
+ 
+3.  Get a temporary A disk
+ 
+    define t3350 as 400 cyl 40
+    format 400 a
+ 
+4.  Access CMS system disk as read-only extension of A
+    access 190 b/a
+ 
+5.  Build and save INSTVSAM using DOSGEN EXEC
+ 
+    dosgen fb0000 instvsam
+    SYSTEM SAVED
+    DMSGEN715I DOSGEN COMPLETE
+    Ready;
+ 
+6.  Generate CMSVSAM and CMSAMS
+ 
+    * Define storage to exclude INSTVSAM segment and IPL CMS
+    cp def stor 16064k
+    ipl 190
+    access (noprof
+    access 400 a
+ 
+7.  Issue "SET SYSNAME" to use INSTVSAM instead of CMSDOS
+ 
+    set sysname cmsdos instvsam
+ 
+8.  Access disks
+ 
+    cp link dosstart 148 148 rr read
+    access 148 z
+    access 190 b/a
+ 
+9.  Activate INSTVSAM CMSDOS environment
+ 
+    set dos on z
+ 
+10. Run VSAMGEN EXEC to build and install CMSVSAM and CMSAMS
+ 
+    vsamgen
+    DMSVGN360R ENTER 'INSTALL 'UPDATE' OR 'RESTART
+    install
+    DMSVGN361R ENTER EITHER 'DOS' OR 'OS':
+    os
+    DMSVGN369R ENTER RELEASE NUMBER OF DOS/VS STARTER SYSTEM:
+    34
+    DMSVGN362R ENTER MODE OF DOS SYSTEM RELOCATABLE LIBRARY DISK:
+    z
+    DMSVGN364R ENTER 'CMSVSAM' OR 'CMSAMS' OR 'BOTH' FOR GENERATION OF NEW SYSTE
+    both
+ 
+    * Ignore any errors during linkage editing...
+ 
+    2199I ERROR HAS OCCURRED DURING LINKAGE EDITING
+    DMSVGN363I CMSVSAM DOSLIB CREATED ON DISK 'A '.
+    DMSVGN370R ENTER 'GO' IF SAVED SYSTEM IS TO BE CREATED,
+    DMSVGN370R OTHERWISE ENTER 'QUIT'
+    go
+    DMSVGN363R ENTER LOCATION WHERE CMSVSAM WILL BE LOADED AND SAVED:
+    E00000
+    DMSVGN364I FETCHING CMSVSAM ...
+    DMSFET710I PHASE 'DMSVVS' ENTRY POINT AT LOCATION E0DFF0.
+    DMSVGN371R CMSVSAM IS LOADED, ENTER CP MODE TO APPLY ZAPS, ELSE 'NULL'.
+ 
+    DMSVGN366R ENTER NAME OF SYSTEM TO BE SAVED:
+    cmsvsam
+    SYSTEM SAVED
+    DMSVGN365I SYSTEM CMSVSAM SAVED.
+    DMSVGN368R ERASE CMSVSAM DOSLIB ? ... ENTER 'YES' OR 'NO':
+    no
+ 
+    * Ignore any errors during linkage editing...
+ 
+    2199I ERROR HAS OCCURRED DURING LINKAGE EDITING
+    DMSVGN363I CMSAMS DOSLIB CREATED ON DISK 'A '.
+    DMSVGN370R ENTER 'GO' IF SAVED SYSTEM IS TO BE CREATED,
+    DMSVGN370R OTHERWISE ENTER 'QUIT'
+    go
+    DMSVGN363R ENTER LOCATION WHERE CMSAMS WILL BE LOADED AND SAVED:
+    E60000
+    DMSVGN364I FETCHING CMSAMS ...
+    DMSFET710I PHASE 'DMSVAS' ENTRY POINT AT LOCATION E602D8.
+    DMSFET710I PHASE 'DMSVAN' ENTRY POINT AT LOCATION EC0118.
+    DMSVGN371R CMSAMS IS LOADED, ENTER CP MODE TO APPLY ZAPS, ELSE 'NULL'.
+ 
+    DMSVGN366R ENTER NAME OF SYSTEM TO BE SAVED:
+    cmsams
+    SYSTEM SAVED
+    DMSVGN365I SYSTEM CMSAMS SAVED.
+    DMSVGN368R ERASE CMSAMS DOSLIB ? ... ENTER 'YES' OR 'NO':
+    no
+    Ready;
+ 
+11. Save the CMSDOS segment
+ 
+    set dos off
+    dosgen F10000 cmsdos
+    SYSTEM SAVED
+    DMSGEN715I DOSGEN COMPLETE
+    Ready;
+ 
+ 
+*******************************************************************************
+Description of CMS files
+*******************************************************************************
+ 
+Source   Location Module    Description
+DMSABN   nucleus            ABEND recovery
+DMSACC   ACCESS   transient ACCESS command
+DMSACF   ACCESS   transient part of ACCESS command
+DMSACM   ACCESS   transient part of ACCESS command
+DMSALU   RELEASE  transient part of RELEASE command
+DMSAMS   AMSERV   MODULE    DOS
+DMSARD                      3705
+DMSARE   RELEASE  MODULE   RELEASE command
+DMSARN                     3705
+DMSARX                     3705
+DMSASD   ASSEMBLE MODULE   part of ASSEMBLE command
+DMSASM   ASSEMBLE MODULE   ASSEMBLE command
+DMSASN   ASSGN    MODULE   DOS
+DMSAUD   nucleus           UPDISK function, part of file system
+DMSBAB                     DOS
+DMSBOP                     DOS
+DMSBRD   nucleus           RDBUF function, part of file system
+DMSBDB   CMSBATCH MODULE   CMSBATCH command
+DMSBTP   ?                 part of batch processor
+DMSBWR   nucleus           WRBUF function, part of file system
+DMSCAT   nucleus           ATTN function, stack a line
+DMSCIO   nucleus           CARDIO function, read/write card image
+DMSCIT   nucleus           handle terminal interruptions
+DMSCLS                     DOS
+DMSCMP   COMPARE  MODULE   COMPARE command
+DMSCPF   nucleus           CP CMS command
+DMSCPY   COPYFILE MODULE   COPYFILE command
+DMSCRD   nucleus           CONREAD function, read a line from console
+DMSCWR   nucleus           TYPLIN function, write a line to console
+DMSCWT   nucleus           CONWAIT function, wait for console I/O to complete
+DMSDBD   nucleus           dump storage
+DMSDBG   nucleus           DEBUG command
+DMSDIO   nucleus           part of file system
+DMSDLB                     DOS
+DMSDLK                     DOS
+DMSDMP                     DOS
+DMSDOS                     DOS
+DMSDSK   DISK     MODULE   DISK command
+DMSDSL                     DOS
+DMSDSV                     DOS
+DMSEDC   EDIT     MODULE   EDCANON, part of EDIT command
+DMSEDF   EDIT     MODULE   part of EDIT command
+DMSEDI   EDIT     MODULE   EDIT command
+DMSEDX   EDIT     MODULE   part of EDIT command
+DMSERR   nucleus           write formatted line (DMSERR and LINEDIT)
+DMSERS   nucleus           ERASE command
+DMSEXC   nucleus           EXEC command
+DMSEXT   DMSEXT   MODULE   EXEC interpreter
+DMSFCH                     DOS
+DMSFET                     DOS
+DMSFLD   FILEDEF  MODULE   FILEDEF command
+DMSFNC   nucleus           nucleus command function table
+DMSFNS   nucleus           FINIS function, part of file system
+DMSFOR   FORMAT   MODULE   FORMAT command
+DMSFRE   nucleus           storage management
+DMSGIO   EDIT     MODULE   part of EDIT command (3270 I/O)
+DMSGLO   GLOBAL   MODULE   GLOBAL command
+DMSGND   GENDIRT  MODULE   GENDIRT command
+DMSGRN                     3705
+DMSHDI   HNDINT   MODULE   HNDINT command
+DMSHDS   HNDINT   MODULE   HNDSVC command
+DMSIFC   CPEREP   MODULE   CPEREP command
+DMSINA   nucleus           ABBREV command
+DMSINI   nucleus           read or write nucleus
+DMSINM   nucleus           CMSTIME function (for Ready message)
+DMSINS   nucleus           nucleus initialization
+DMSINT   nucleus           CMS console command loop
+DMSIOW   nucleus           WAIT function, wait for I/O to complete
+DMSITE   nucleus           handle external interrupts
+DMSITI   nucleus           interrupt handling
+DMSITP                     DOS
+DMSITS   nucleus           handle CMS SVC interrupts
+DMSLAD   nucleus           part of file system
+DMSLAF   nucleus           part of file system
+DMSLBM   MACLIB   MODULE   MACLIB command
+DMSLBT   TXTLIB   MODULE   TXTLIB command
+DMSLDR   nucleus           part of loader
+DMSLDS   LISTDS   MODULE   LISTDS command
+DMSLFS   nucleus           part of file system
+DMSLGT   nucleus           part of TXTLIB command
+DMSLIB   nucleus           part of TXTLIB command
+DMSLIO   nucleus           part of LOAD, creates LOAD MAP
+DMSLOA   nucleus           LOAD and INCLUDE commands
+DMSLSB   nucleus           part of loader
+DMSLST   LISTFILE MODULE   LISTFILE command
+DMSLSY   nucleus           part of loader
+DMSMDP   MODMAP   MODULE   MODMAP command
+DMSMOD   nucleus           GENMOD command
+DMSMVE   MOVEFILE MODULE   MOVEFILE command
+DMSN33                     VSAM part of AMSGEN
+DMSNCP                     3705
+DMSNUC   nucleus           CMS nucleus header
+DMSOLD   DMSOLD            part of loader
+DMSOPL                     DOS
+DMSOPT                     DOS
+DMSOR1                     DOS
+DMSOR2                     DOS
+DMSOR3                     DOS
+DMSOVR   SVCTRACE MODULE   SVCTRACE command
+DMSOVS   DMSOVS   MODULE   part of SVCTRACE command
+DMSPIO   nucleus           PRINTR function, print a line on the printer
+DMSPNT   nucleus           POINT function, part of file system
+DMSPRT   PRINT    MODULE   PRINT command
+DMSPRV                     DOS
+DMSPUN   PUNCH    MODULE   PUNCH command
+DMSQRY   QUERY    MODULE   QUERY command
+DMSRDC   READCARD MODULE   READCARD command
+DMSREA                     part of CPEREP command
+DMSRNE   RENUM    MODULE   EDIT RENUM command
+DMSRNM   RENAME   MODULE   RENAME command
+DMSROS   DMSROS            access OS disks
+DMSRRV                     DOS
+DMSS33                     VSAM AMS
+DMSSAB   nucleus           handle OS abends
+DMSSBD   nucleus           OS BDAM simulation
+DMSSBS   nucleus           OS BSAM simulation
+DMSSCN   nucleus           tokenize command line
+DMSSCR   EDIT     MODULE   EDIT command
+DMSSCT   nucleus           OS QSAM simulation
+DMSSEB   nucleus           OS EOB support
+DMSSEG                     CMS segment addresses
+DMSSET   SET      MODULE   SET command
+DMSSLN                     OS simulation
+DMSSMN   nucleus           OS GETMAIN and FREEMAIN
+DMSSOP   nucleus           OS OPEN and CLOSE
+DMSSQS   nucleus           OS QSAM simulation
+DMSSRT   SORT     MODULE   SORT command
+DMSSRV                     DOS
+DMSSSK   SETKEY   MODULE   SETKEY command
+DMSSTG   nucleus           STRINIT command
+DMSSTT   nucleus           STATE, STATEW commands, part of file system
+DMSSVN   segment           OS WAIT, POST, TGET, TPUT, TCLEARQ
+DMSSVT   nucleus           OS SVC routing
+DMSSYN   SYNONYM  MODULE   SYNONYM command
+DMSTIO   nucleus           TAPEIO function, read and write tape
+DMSTMA   TAPEMAC  MODULE   TAPEMAC command
+DMSTPD   TAPPDS   MODULE   TAPPDS command
+DMSTPE   TAPE     MODULE   TAPE command
+DMSUPD   UPDATE   MODULE   UPDATE command
+DMSV33                     VSAM
+DMSVAN                     VSAM AMS
+DMSVAS                     VSAM AMS
+DMSVIB                     VSAM
+DMSVIP                     VSAM
+DMSVPD                     DOS
+DMSVSR   nucleus           VSAM
+DMSVVN                     DOS
+DMSVVS                     DOS
+DMSXCP                     DOS
+DMSZAP   ZAP      MODULE   ZAP command
+DMSZAT   nucleus           transient area
+DMSZIT   nucleus           nucleus storage
+DMSZNR   nucleus           marks end of nucleus
+DMSZUS   nucleus           define user area
+VMFDATE  VMFDATE  MODULE   VMFDATE command
+VMFLOAD  VMFLOAD  MODULE   VMFLOAD command
+VMFPLC2  VMFPLC2  MODULE   VMFPLC2 command

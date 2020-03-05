@@ -8,9 +8,8 @@ RUN apt-get install --no-install-recommends -y hercules
 WORKDIR     /opt/hercules/vm370
 
 # Local Config files
-COPY build.sh hercules.conf start_vm370.sh ./
-RUN chmod +x build.sh && \
-    chmod +x start_vm370.sh && \
+COPY *.sh hercules.conf ./
+RUN chmod +x *.sh && \
 	  chmod -x hercules.conf
 
 # Build & Sanity Test VM/370 Host

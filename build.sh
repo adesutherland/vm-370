@@ -17,17 +17,6 @@ wget -nv https://github.com/adesutherland/vm-370/releases/download/v1.3.4/vm370.
 unzip vm370.zip
 rm vm370.zip
 
-# Run sanity test
-hercules -f hercules.conf -d >/dev/null 2>/dev/null &
-herccontrol "ipl 141" -w "USER DSC LOGOFF AS AUTOLOG1"
-herccontrol "/cp disc" -w "^VM/370 Online"
-herccontrol "/logon cmsuser cmsuser" -w "^CMS VERSION"
-herccontrol "/" -w "^Ready"
-herccontrol "/listf * * a" -w "^Ready"
-herccontrol "/logoff" -w "^VM/370 Online"
-herccontrol "/logon operator operator" -w "RECONNECTED AT"
-herccontrol "/shutdown" -w "^HHCCP011I"
-
 # YATA (1.2.0) - Ubuntu
 wget -nv https://github.com/adesutherland/yata/releases/download/v1.2.0/YATA-Ubuntu.zip
 unzip YATA-Ubuntu.zip
@@ -35,6 +24,10 @@ chmod +x YATA-Ubuntu/yata
 cp YATA-Ubuntu/yata /usr/local/bin
 rm -r YATA-Ubuntu
 rm YATA-Ubuntu.zip
+
+# EPLIST Fix
+./fixeplist.sh
+rm fixeplist.sh
 
 # YATA CMS v 1.1.3 (Last version that works on GCCLIB pre-0.7.x)
 wget -nv https://github.com/adesutherland/yata/releases/download/v1.1.3/YATA-CMS.zip
@@ -91,6 +84,17 @@ cd ..
 rm -r io
 rm -r BREXX
 rm BREXX.zip
+
+# Run sanity test
+hercules -f hercules.conf -d >/dev/null 2>/dev/null &
+herccontrol "ipl 141" -w "USER DSC LOGOFF AS AUTOLOG1"
+herccontrol "/cp disc" -w "^VM/370 Online"
+herccontrol "/logon cmsuser cmsuser" -w "^CMS VERSION"
+herccontrol "/" -w "^Ready"
+herccontrol "/listf * * a" -w "^Ready"
+herccontrol "/logoff" -w "^VM/370 Online"
+herccontrol "/logon operator operator" -w "RECONNECTED AT"
+herccontrol "/shutdown" -w "^HHCCP011I"
 
 # Compress disks
 # hercules -f hercules.conf -d >/dev/null 2>/dev/null &

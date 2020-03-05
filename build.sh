@@ -17,6 +17,9 @@ wget -nv https://github.com/adesutherland/vm-370/releases/download/v1.3.4/vm370.
 unzip vm370.zip
 rm vm370.zip
 
+# Start Hercules
+hercules -f hercules.conf -d >/dev/null 2>/dev/null &
+
 # YATA (1.2.0) - Ubuntu
 wget -nv https://github.com/adesutherland/yata/releases/download/v1.2.0/YATA-Ubuntu.zip
 unzip YATA-Ubuntu.zip
@@ -86,7 +89,6 @@ rm -r BREXX
 rm BREXX.zip
 
 # Run sanity test
-hercules -f hercules.conf -d >/dev/null 2>/dev/null &
 herccontrol "ipl 141" -w "USER DSC LOGOFF AS AUTOLOG1"
 herccontrol "/cp disc" -w "^VM/370 Online"
 herccontrol "/logon cmsuser cmsuser" -w "^CMS VERSION"

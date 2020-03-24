@@ -74,8 +74,8 @@ rm -r io
 rm -r YATA-CMS
 rm YATA-CMS.zip
 
-# CMS BREXX (0.9.1)
-wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v0.9.1/BREXX.zip
+# CMS BREXX (0.9.2)
+wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v0.9.2/BREXX.zip
 unzip BREXX.zip
 chmod +x BREXX/cmsinstall.sh
 mkdir io

@@ -46,8 +46,8 @@ rm -r io
 rm -r YATA-CMS
 rm YATA-CMS.zip
 
-# GCCLIB (0.7.5) - needs a version of YATA to download
-wget -nv https://github.com/adesutherland/CMS-370-GCCLIB/releases/download/v0.7.5/GCCLIB.zip
+# GCCLIB (0.7.7) - needs a version of YATA to download
+wget -nv https://github.com/adesutherland/CMS-370-GCCLIB/releases/download/v0.7.7/GCCLIB.zip
 unzip GCCLIB.zip
 chmod +x GCCLIB/cmsinstall.sh
 mkdir io

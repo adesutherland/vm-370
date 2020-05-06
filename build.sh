@@ -37,7 +37,7 @@ wget -nv https://github.com/adesutherland/yata/releases/download/v1.1.3/YATA-CMS
 unzip YATA-CMS.zip
 chmod +x YATA-CMS/cmsinstall.sh
 mkdir io
-cp YATA-CMS/*
+cp YATA-CMS/* io
 cd io
 ./cmsinstall.sh
 cd ..

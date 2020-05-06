@@ -1,6 +1,8 @@
 VM/370 Docker Container - Changelog
 ===================================
 
+1.4.11 - Updated GCCLIB to Version 0.7.9 (VM/370 DASD)
+         Updated BREXX to Version 0.9.3 (VM/370 DASD)
 1.4.10 - Updated GCCLIB to Version 0.7.8 (VM/370 DASD)
 1.4.9 - Updated GCCLIB to Version 0.7.7 (VM/370 DASD)
 1.4.8 - Updated BREXX to Version 0.9.2 (VM/370 DASD)

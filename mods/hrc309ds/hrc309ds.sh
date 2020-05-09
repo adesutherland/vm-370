@@ -1,13 +1,10 @@
 #!/bin/sh
-# Fix PSLIST Mod
+# Fix PSLIST Mod (HRC309DS) installation
+# Predicate - logged on as MAINT
+#           - Needs buildnuc.sh run afterwards
 
 # Exit if there is an error
 set -e
-
-herccontrol "ipl 141" -w "USER DSC LOGOFF AS AUTOLOG1"
-herccontrol "/cp disc" -w "^VM/370 Online"
-herccontrol "/logon maint cpcms" -w "^CMS VERSION"
-herccontrol "/" -w "^Ready"
 
 # Access the CMS local modifications disk for write
 herccontrol "/access 093 b" -w "^Ready;"
@@ -86,55 +83,3 @@ herccontrol "/ERASE RENAME MODOLD E" -w "^Ready;"
 herccontrol "/RENAME RENAME MODULE E = MODOLD E1" -w "^Ready;"
 herccontrol "/COPYFILE RENAME MODULE A = = E2 (OLDDATE" -w "^Ready;"
 herccontrol "/ERASE RENAME MODULE A" -w "^Ready;"
-
-# Make the disks read only again:
-herccontrol "/CMSACC" -w "^Ready;"
-
-# Rebuild the CMS nucleus by following step 7 of the procedure in SYSPROG MEMO
-herccontrol "/purge rdr" -w "^Ready;"
-herccontrol "/vmfload cmsload dmshrc" -w "^Ready;"
-herccontrol "/ipl 00c clear"
-
-# DMSINI606R SYSTEM DISK ADDRESS = 190
-herccontrol "/190"
-
-# DMSINI615R Y-DISK ADDRESS = 19e
-herccontrol "/19e"
-
-# DMSINI607R REWRITE THE NUCLEUS ? yes
-herccontrol "/yes"
-
-# DMSINI608R IPL DEVICE ADDRESS = 190
-herccontrol "/190"
-
-# DMSINI609R NUCLEUS CYL ADDRESS = 59
-herccontrol "/59"
-
-# DMSINI610R ALSO IPL CYLINDER 0 ? yes
-herccontrol "/yes"
-
-# DMSINI611R VERSION IDENTIFICATION =
-herccontrol "/"
-
-# DMSINI612R INSTALLATION HEADING =
-herccontrol "/"
-
-herccontrol "/" -w "^Ready;"
-herccontrol "/cp close prt" -w "^Ready;"
-herccontrol "/purge prt" -w "^Ready;"
-
-# Regenerate System
-herccontrol "/define storage 16m"  -w "^CP ENTERED"
-herccontrol "/ipl 190" -w "^CMS VERSION"
-herccontrol "/access ( noprof" -w "^Ready;"
-herccontrol "/access 093 b" -w "^Ready;"
-herccontrol "/access 193 c" -w "^Ready;"
-herccontrol "/cmsxgen f00000 cmsseg" -w "^Ready;"
-herccontrol "/ipl 190" -w "^CMS VERSION"
-herccontrol "/savesys cms" -w "^CMS VERSION"
-herccontrol "/" -w "^Ready;"
-
-# Done
-herccontrol "/logoff" -w "^VM/370 Online"
-herccontrol "/logon operator operator" -w "RECONNECTED AT"
-herccontrol "/shutdown" -w "^HHCCP011I"

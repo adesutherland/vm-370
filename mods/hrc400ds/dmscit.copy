@@ -1,0 +1,17 @@
+./ I 340000 $ 340020 20
+         CH    R8,=CL2'HI'        Halt Interpretor?            HRC400DS
+         BE    HLTEXEC                                         HRC400DS
+         CH    R8,=CL2'TS'        Trace Start                  HRC400DS
+         BE    TRCSTART                                        HRC400DS
+         CH    R8,=CL2'TE'        Trace End                    HRC400DS
+         BE    TRCEND                                          HRC400DS
+./ I 410000 $ 410100 100                                       HRC400DS
+         B     FRETX                                           HRC400DS
+HLTEXEC  EQU   *                                               HRC400DS
+         OI    EXECFLAG,EXECHALT                               HRC400DS
+         B     FRETX                                           HRC400DS
+TRCSTART EQU   *                                               HRC400DS
+         OI    EXECFLAG,EXECTRAC                               HRC400DS
+         B     FRETX                                           HRC400DS
+TRCEND   EQU   *                                               HRC400DS
+         NI    EXECFLAG,X'FF'-EXECTRAC                         HRC400DS

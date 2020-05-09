@@ -20,7 +20,7 @@ rm vm370.zip
 # Start Hercules
 hercules -f hercules.conf -d >/dev/null 2>/dev/null &
 
-# YATA (1.2.0) - Ubuntu
+# YATA UBUNTU v 1.2.0
 wget -nv https://github.com/adesutherland/yata/releases/download/v1.2.0/YATA-Ubuntu.zip
 unzip YATA-Ubuntu.zip
 chmod +x YATA-Ubuntu/yata
@@ -28,37 +28,7 @@ cp YATA-Ubuntu/yata /usr/local/bin
 rm -r YATA-Ubuntu
 rm YATA-Ubuntu.zip
 
-# EPLIST Fix
-./fixeplist.sh
-rm fixeplist.sh
-
-# YATA CMS v 1.1.3 (Last version that works on GCCLIB pre-0.7.x)
-wget -nv https://github.com/adesutherland/yata/releases/download/v1.1.3/YATA-CMS.zip
-unzip YATA-CMS.zip
-chmod +x YATA-CMS/cmsinstall.sh
-mkdir io
-cp YATA-CMS/* io
-cd io
-./cmsinstall.sh
-cd ..
-rm -r io
-rm -r YATA-CMS
-rm YATA-CMS.zip
-
-# GCCLIB (0.7.9) - needs a version of YATA to download
-wget -nv https://github.com/adesutherland/CMS-370-GCCLIB/releases/download/v0.7.9/GCCLIB.zip
-unzip GCCLIB.zip
-chmod +x GCCLIB/cmsinstall.sh
-mkdir io
-cp GCCLIB/* io
-cd io
-./cmsinstall.sh
-cd ..
-rm -r io
-rm -r GCCLIB
-rm GCCLIB.zip
-
-# YATA CMS v 1.2.0 (Uptodate version works with latest GCCLIB)
+# YATA CMS v 1.2.0
 wget -nv https://github.com/adesutherland/yata/releases/download/v1.2.0/YATA-CMS.zip
 unzip YATA-CMS.zip
 chmod +x YATA-CMS/cmsinstall.sh
@@ -70,6 +40,44 @@ cd ..
 rm -r io
 rm -r YATA-CMS
 rm YATA-CMS.zip
+
+# Apply VM/370 Mods
+cd mods
+
+cd hrc309ds
+chmod +x *.sh
+../iplmaint.sh
+./hrc309ds.sh
+../buildnuc.sh
+../shutdown.sh
+cd ..
+
+cd hrc400ds
+chmod +x *.sh
+../iplmaint.sh
+./part_a.sh
+../buildnuc.sh
+../shutdown.sh
+../iplmaint.sh
+./part_b.sh
+../regen.sh
+../shutdown.sh
+cd ..
+
+cd ..
+
+# GCCLIB (0.7.9)
+wget -nv https://github.com/adesutherland/CMS-370-GCCLIB/releases/download/v0.7.9/GCCLIB.zip
+unzip GCCLIB.zip
+chmod +x GCCLIB/cmsinstall.sh
+mkdir io
+cp GCCLIB/* io
+cd io
+./cmsinstall.sh
+cd ..
+rm -r io
+rm -r GCCLIB
+rm GCCLIB.zip
 
 # CMS BREXX (0.9.3)
 wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v0.9.3/BREXX.zip
@@ -90,12 +98,15 @@ herccontrol "/cp disc" -w "^VM/370 Online"
 herccontrol "/logon cmsuser cmsuser" -w "^CMS VERSION"
 herccontrol "/" -w "^Ready"
 herccontrol "/listf * * a" -w "^Ready"
+herccontrol "/exectrac" -w "^Ready"
 herccontrol "/logoff" -w "^VM/370 Online"
 herccontrol "/logon operator operator" -w "RECONNECTED AT"
 herccontrol "/shutdown" -w "^HHCCP011I"
+herccontrol "exit"
 
 # Compress disks
-# hercules -f hercules.conf -d >/dev/null 2>/dev/null &
-herccontrol "sfc*" -w "HHCCD092I"
-herccontrol "sfk* 3" -w "HHCCD092I"
+hercules -f hercules.conf -d >/dev/null 2>/dev/null &
+herccontrol "sfc*"
+herccontrol "sfk* 3"
+
 herccontrol "exit"

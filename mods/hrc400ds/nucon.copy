@@ -1,0 +1,3 @@
+./ I 333000 $ 333100 100
+EXECHALT EQU   X'10'          Halt interpreter requested       HRC400DS
+EXECTRAC EQU   X'01'          Exec trace requested             HRC400DS

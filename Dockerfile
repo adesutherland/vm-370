@@ -2,7 +2,7 @@
 FROM	ubuntu:latest
 
 RUN	apt-get update
-RUN apt-get install --no-install-recommends -y unzip wget ca-certificates
+RUN apt-get install --no-install-recommends -y unzip wget netcat ca-certificates
 RUN apt-get install --no-install-recommends -y hercules
 
 WORKDIR     /opt/hercules/vm370
@@ -11,6 +11,10 @@ WORKDIR     /opt/hercules/vm370
 COPY *.sh hercules.conf ./
 RUN chmod +x *.sh && \
 	  chmod -x hercules.conf
+
+# VM/370 Mods
+COPY mods/ ./mods/
+RUN chmod +x ./mods/*.sh
 
 # Build & Sanity Test VM/370 Host
 RUN /opt/hercules/vm370/build.sh && \

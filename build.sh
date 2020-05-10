@@ -66,8 +66,8 @@ cd ..
 
 cd ..
 
-# GCCLIB (0.7.9)
-wget -nv https://github.com/adesutherland/CMS-370-GCCLIB/releases/download/v0.7.9/GCCLIB.zip
+# GCCLIB (0.7.10)
+wget -nv https://github.com/adesutherland/CMS-370-GCCLIB/releases/download/v0.7.10/GCCLIB.zip
 unzip GCCLIB.zip
 chmod +x GCCLIB/cmsinstall.sh
 mkdir io

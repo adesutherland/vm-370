@@ -66,7 +66,7 @@ cd ..
 
 cd ..
 
-# GCCLIB (0.7.10)
+# GCCLIB
 wget -nv https://github.com/adesutherland/CMS-370-GCCLIB/releases/download/v0.7.10/GCCLIB.zip
 unzip GCCLIB.zip
 chmod +x GCCLIB/cmsinstall.sh
@@ -79,8 +79,8 @@ rm -r io
 rm -r GCCLIB
 rm GCCLIB.zip
 
-# CMS BREXX (0.9.3)
-wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v0.9.3/BREXX.zip
+# CMS BREXX
+wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v0.9.4/BREXX.zip
 unzip BREXX.zip
 chmod +x BREXX/cmsinstall.sh
 mkdir io

@@ -66,8 +66,11 @@ cd ..
 
 cd ..
 
+herccontrol "exit"
+
 # GCCLIB
-wget -nv https://github.com/adesutherland/CMS-370-GCCLIB/releases/download/v0.7.10/GCCLIB.zip
+hercules -f hercules.conf -d >/dev/null 2>/dev/null &
+wget -nv https://github.com/adesutherland/CMS-370-GCCLIB/releases/download/v0.7.11/GCCLIB.zip
 unzip GCCLIB.zip
 chmod +x GCCLIB/cmsinstall.sh
 mkdir io
@@ -75,24 +78,28 @@ cp GCCLIB/* io
 cd io
 ./cmsinstall.sh
 cd ..
+herccontrol "exit"
 rm -r io
 rm -r GCCLIB
 rm GCCLIB.zip
 
 # CMS BREXX
-wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v0.9.4/BREXX.zip
-unzip BREXX.zip
-chmod +x BREXX/cmsinstall.sh
-mkdir io
-cp BREXX/* io
-cd io
-./cmsinstall.sh
-cd ..
-rm -r io
-rm -r BREXX
-rm BREXX.zip
+#hercules -f hercules.conf -d >/dev/null 2>/dev/null &
+#wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v0.9.4/BREXX.zip
+#unzip BREXX.zip
+#chmod +x BREXX/cmsinstall.sh
+#mkdir io
+#cp BREXX/* io
+#cd io
+#./cmsinstall.sh
+#cd ..
+#herccontrol "exit"
+#rm -r io
+#rm -r BREXX
+#rm BREXX.zip
 
 # Run sanity test
+hercules -f hercules.conf -d >/dev/null 2>/dev/null &
 herccontrol "ipl 141" -w "USER DSC LOGOFF AS AUTOLOG1"
 herccontrol "/cp disc" -w "^VM/370 Online"
 herccontrol "/logon cmsuser cmsuser" -w "^CMS VERSION"
@@ -108,5 +115,4 @@ herccontrol "exit"
 hercules -f hercules.conf -d >/dev/null 2>/dev/null &
 herccontrol "sfc*"
 herccontrol "sfk* 3"
-
 herccontrol "exit"

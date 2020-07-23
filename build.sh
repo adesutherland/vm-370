@@ -20,16 +20,16 @@ rm vm370.zip
 # Start Hercules
 hercules -f hercules.conf -d >/dev/null 2>/dev/null &
 
-# YATA UBUNTU v 1.2.0
-wget -nv https://github.com/adesutherland/yata/releases/download/v1.2.0/YATA-Ubuntu.zip
+# YATA UBUNTU
+wget -nv https://github.com/adesutherland/yata/releases/download/v1.2.2/YATA-Ubuntu.zip
 unzip YATA-Ubuntu.zip
 chmod +x YATA-Ubuntu/yata
 cp YATA-Ubuntu/yata /usr/local/bin
 rm -r YATA-Ubuntu
 rm YATA-Ubuntu.zip
 
-# YATA CMS v 1.2.0
-wget -nv https://github.com/adesutherland/yata/releases/download/v1.2.0/YATA-CMS.zip
+# YATA CMS
+wget -nv https://github.com/adesutherland/yata/releases/download/v1.2.2/YATA-CMS.zip
 unzip YATA-CMS.zip
 chmod +x YATA-CMS/cmsinstall.sh
 mkdir io
@@ -55,22 +55,29 @@ cd ..
 cd hrc400ds
 chmod +x *.sh
 ../iplmaint.sh
-./part_a.sh
+./installa.sh
 ../buildnuc.sh
 ../shutdown.sh
 ../iplmaint.sh
-./part_b.sh
+./installb.sh
 ../regen.sh
 ../shutdown.sh
 cd ..
 
+cd hrc402ds
+chmod +x *.sh
+../iplmaint.sh
+./install.sh
+../buildnuc.sh
+../shutdown.sh
 cd ..
 
+cd ..
 herccontrol "exit"
 
 # GCCLIB
 hercules -f hercules.conf -d >/dev/null 2>/dev/null &
-wget -nv https://github.com/adesutherland/CMS-370-GCCLIB/releases/download/v0.7.13/GCCLIB.zip
+wget -nv https://github.com/adesutherland/CMS-370-GCCLIB/releases/download/v0.7.14/GCCLIB.zip
 unzip GCCLIB.zip
 chmod +x GCCLIB/cmsinstall.sh
 mkdir io
@@ -83,9 +90,9 @@ rm -r io
 rm -r GCCLIB
 rm GCCLIB.zip
 
-# CMS BREXX
+## CMS BREXX
 #hercules -f hercules.conf -d >/dev/null 2>/dev/null &
-#wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v0.9.4/BREXX.zip
+#wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v0.9.5/BREXX.zip
 #unzip BREXX.zip
 #chmod +x BREXX/cmsinstall.sh
 #mkdir io
@@ -105,7 +112,6 @@ herccontrol "/cp disc" -w "^VM/370 Online"
 herccontrol "/logon cmsuser cmsuser" -w "^CMS VERSION"
 herccontrol "/" -w "^Ready"
 herccontrol "/listf * * a" -w "^Ready"
-herccontrol "/exectrac" -w "^Ready"
 herccontrol "/logoff" -w "^VM/370 Online"
 herccontrol "/logon operator operator" -w "RECONNECTED AT"
 herccontrol "/shutdown" -w "^HHCCP011I"

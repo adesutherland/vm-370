@@ -1,0 +1,99 @@
+./ R 00098100          $ 98102 2
+* Allocate storage for user savearea and file I/O              HRC402DS
+         LA    R0,WORKSIZE    work area size in dwords         HRC402DS
+         DMSFREE DWORDS=(0),TYPE=USER,TYPCALL=BALR             HRC402DS
+./ R 00098420 00098770 $ 98420 5
+* Check to see if BREXX is loaded in storage.                  HRC402DS
+         ICM   R15,B'1111',NUCBREXX Is NUCBREXX in memory?     HRC402DS
+         BNZ   BREXXGO            Go call it if so             HRC402DS
+         L     R15,=F'-3'         BREXX not loaded             HRC402DS
+         B     REXXRET2           Pass back the sorrow         HRC402DS
+*                                                              HRC402DS
+* Setup the PSW to pass control to the memory resident         HRC402DS
+* BREXX interpretor.                                           HRC402DS
+*                                                              HRC402DS
+BREXXGO  DS    0H                                              HRC402DS
+         XC    0(8,0),0                                        HRC402DS
+         MVI   0(0),X'FF'         Set PSW enabled              HRC402DS
+         OI    1(0),X'E0'         Set user key                 HRC402DS
+         MVC   4(4,0),NUCBREXX    Set PSW address              HRC402DS
+*                                                              HRC402DS
+* An EXEC called using Implied EXEC logic from the command     HRC402DS
+* line may have the EXEC name as the command in the EPLIST     HRC402DS
+* rather than the command name 'EXEC'.                         HRC402DS
+*                                                              HRC402DS
+         L     R14,0(,R10)    Load word 1 of eplist            HRC402DS
+         MVC   WORK(5),0(R14) Make a copy of the command       HRC402DS
+         OC    WORK(5),=CL5' ' Uppercase the command name      HRC402DS
+         CLC   WORK(5),=CL5'EXEC ' Explicit EXEC as command?   HRC402DS
+         BE    NOIMPLD        Nothing to do if so              HRC402DS
+*                             Implied EXEC if not              HRC402DS
+         MVC   WORK+12*8(4*6),0(R10) Copy eplist to our buffer HRC403DS
+         LA    R10,WORK+12*8  Point to the copy                HRC402DS
+         MVC   4(4,R10),0(R10) Change 1st arg to EXEC's name   HRC402DS
+NOIMPLD  DS    0H                                              HRC402DS
+*                                                              HRC402DS
+         XC    WORK(12*8),WORK Clear USERSAVE area             HRC402DS
+*                                                              HRC402DS
+         L     R1,AOPSECT     Addressability to                HRC402DS
+         USING OPSECT,R1        the OPSECT                     HRC402DS
+         LA    R0,1           Add one to the REXX              HRC402DS
+         A     R0,EXRLVL        execution depth counter        HRC402DS
+         ST    R0,EXRLVL                                       HRC402DS
+         DROP  R1                                              HRC402DS
+*                                                              HRC402DS
+         LA    R14,REXXRET    Set return address from DMSREX   HRC402DS
+         LR    R0,R10         load eplist pointer              HRC402DS
+         LR    R1,R11         load plist pointer               HRC402DS
+         LA    R13,WORK       User key R13 save area           HRC402DS
+*                             R13 base is lost when            HRC402DS
+*                                 R13 points to USERSAVE       HRC402DS
+         L     R15,NUCBREXX   BREXX processor address          HRC402DS
+         LR    R12,R15        Here too                         HRC402DS
+         LPSW  0              Goto BREXX in user key enabled   HRC402DS
+*                             BREXX returns to us here         HRC402DS
+REXXRET  DS    0H                                              HRC402DS
+         LR    R1,R13         Address of work area             HRC402DS
+         L     R13,AEXEC      Restore addressability           HRC402DS
+         SPKA  0              Protect key 0                    HRC402DS
+         SSM   *+1            Disable interrupts               HRC402DS
+*                                                              HRC402DS
+REXXRET2 DS    0H             Join here if BREXX not loaded    HRC402DS
+         LR    R3,R15         save return code from REXX       HRC402DS
+*                                                              HRC402DS
+         L     R1,AOPSECT     Addressability to                HRC402DS
+         USING OPSECT,R1        the OPSECT                     HRC402DS
+         L     R0,EXRLVL      Subtract one from the REXX       HRC402DS
+         S     R0,=F'1'         execution depth counter        HRC402DS
+         ST    R0,EXRLVL                                       HRC402DS
+         LTR   R0,R0          Skip next if still > 0           HRC402DS
+         BNZ   REXXRET3                                        HRC402DS
+* Clear flags froM TS and HI immediate commands                HRC402DS
+         NI    EXECFLAG,X'FF'-EXECTRAC-EXECHALT                HRC402DS
+REXXRET3 DS    0H                                              HRC402DS
+         DROP  R1                                              HRC402DS
+*                                                              HRC402DS
+         LA    R0,WORKSIZE    work area size in dwords         HRC402DS
+         DMSFRET DWORDS=(0),LOC=WORK,TYPCALL=BALR              HRC402DS
+         LR    R15,R3         recover return code              HRC402DS
+         BR    R9             return to our caller             HRC402DS
+* Return our memory, restore registers, and let EXEC proceed   HRC402DS
+NOTREXX  DS    0H             continue with normal EXEC...     HRC402DS
+         LA    R0,WORKSIZE    work area size in dwords         HRC402DS
+         DMSFRET DWORDS=(0),LOC=WORK,TYPCALL=BALR              HRC402DS
+         DROP  R8                                              HRC402DS
+         LR    R5,R9          recover R5                       HRC402DS
+         LR    R0,R10         recover R0                       HRC402DS
+         LR    R1,R11         recover R1                       HRC402DS
+NOTREXX2 DS    0H             continue with normal EXEC...     HRC402DS
+*                                                              HRC402DS
+./ R 00230100 00230600 $ 230100 100
+*                                                              HRC402DS
+         FSCBD                                                 HRC402DS
+FSCBDSIZ EQU   *-FSCBD                                         HRC402DS
+WORK     DSECT                                                 HRC402DS
+BUFFER0  DS    CL256                                           HRC402DS
+FSCBEXEC DS    ((FSCBDSIZ+7)/8)D                               HRC402DS
+WORKSIZE EQU   (*-WORK+7)/8       WORK size in dwords          HRC402DS
+./ I 00234000          $ 234100 100
+NUCBREXX EQU   NUCRSV4            BREXX address in memory      HRC402DS

@@ -1,9 +1,10 @@
 VM/370 Docker Container - Changelog
 ===================================
 
+1.4.20 - Updated GCCLIB to Version 0.7.16 (VM/370 DASD)
+         (Makes EXEC Fixed format - workaround)
 1.4.19 - Known defect with sysprof exec (undiagnosed), fixed by:
            COPY SYSPROF EXEC S = = A (RECFM F LRECL 80
-           (invalid character or something?)
        - Updated GCCLIB to Version 0.7.15 (VM/370 DASD)
        - Updated BREXX to Version 0.9.6 (VM/370 DASD)
        - Updated YATA to Version 1.2.3 (Container & VM/370 DASD)

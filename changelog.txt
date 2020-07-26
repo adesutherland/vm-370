@@ -1,9 +1,20 @@
 VM/370 Docker Container - Changelog
 ===================================
 
+1.4.19 - Known defect with sysprof exec (undiagnosed), fixed by:
+           COPY SYSPROF EXEC S = = A (RECFM F LRECL 80
+           (invalid character or something?)
+       - Updated GCCLIB to Version 0.7.15 (VM/370 DASD)
+       - Updated BREXX to Version 0.9.6 (VM/370 DASD)
+       - Updated YATA to Version 1.2.3 (Container & VM/370 DASD)
+       - Changed Docker Build to just auto make the version
+         tagged image. This can be retagged latest/test/builder as
+         appropriate. Simplifies complex deployment workflow.
+       - Added dos2unix so build on windows is more robust!
 1.4.18 - Updated GCCLIB to Version 0.7.14 (VM/370 DASD)
        - No BREXX (to facilitate incompatable build)
        - Updated YATA to Version 1.2.1 (Container & VM/370 DASD)
+       - MOD HRC402DS (REXX REDIRECT) (VM/370 DASD)
 1.4.17 - Updated GCCLIB to Version 0.7.13 (VM/370 DASD)
        - No BREXX (to facilitate incompatable build)
 1.4.16 - Updated GCCLIB to Version 0.7.12 (VM/370 DASD)

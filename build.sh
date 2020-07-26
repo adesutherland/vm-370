@@ -21,7 +21,7 @@ rm vm370.zip
 hercules -f hercules.conf -d >/dev/null 2>/dev/null &
 
 # YATA UBUNTU
-wget -nv https://github.com/adesutherland/yata/releases/download/v1.2.2/YATA-Ubuntu.zip
+wget -nv https://github.com/adesutherland/yata/releases/download/v1.2.3/YATA-Ubuntu.zip
 unzip YATA-Ubuntu.zip
 chmod +x YATA-Ubuntu/yata
 cp YATA-Ubuntu/yata /usr/local/bin
@@ -29,7 +29,7 @@ rm -r YATA-Ubuntu
 rm YATA-Ubuntu.zip
 
 # YATA CMS
-wget -nv https://github.com/adesutherland/yata/releases/download/v1.2.2/YATA-CMS.zip
+wget -nv https://github.com/adesutherland/yata/releases/download/v1.2.3/YATA-CMS.zip
 unzip YATA-CMS.zip
 chmod +x YATA-CMS/cmsinstall.sh
 mkdir io
@@ -45,6 +45,7 @@ rm YATA-CMS.zip
 cd mods
 
 cd hrc309ds
+dos2unix *.sh
 chmod +x *.sh
 ../iplmaint.sh
 ./hrc309ds.sh
@@ -53,6 +54,7 @@ chmod +x *.sh
 cd ..
 
 cd hrc400ds
+dos2unix *.sh
 chmod +x *.sh
 ../iplmaint.sh
 ./installa.sh
@@ -65,6 +67,7 @@ chmod +x *.sh
 cd ..
 
 cd hrc402ds
+dos2unix *.sh
 chmod +x *.sh
 ../iplmaint.sh
 ./install.sh
@@ -77,7 +80,7 @@ herccontrol "exit"
 
 # GCCLIB
 hercules -f hercules.conf -d >/dev/null 2>/dev/null &
-wget -nv https://github.com/adesutherland/CMS-370-GCCLIB/releases/download/v0.7.14/GCCLIB.zip
+wget -nv https://github.com/adesutherland/CMS-370-GCCLIB/releases/download/v0.7.15/GCCLIB.zip
 unzip GCCLIB.zip
 chmod +x GCCLIB/cmsinstall.sh
 mkdir io
@@ -90,20 +93,20 @@ rm -r io
 rm -r GCCLIB
 rm GCCLIB.zip
 
-## CMS BREXX
-#hercules -f hercules.conf -d >/dev/null 2>/dev/null &
-#wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v0.9.5/BREXX.zip
-#unzip BREXX.zip
-#chmod +x BREXX/cmsinstall.sh
-#mkdir io
-#cp BREXX/* io
-#cd io
-#./cmsinstall.sh
-#cd ..
-#herccontrol "exit"
-#rm -r io
-#rm -r BREXX
-#rm BREXX.zip
+# CMS BREXX
+hercules -f hercules.conf -d >/dev/null 2>/dev/null &
+wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v0.9.6/BREXX.zip
+unzip BREXX.zip
+chmod +x BREXX/cmsinstall.sh
+mkdir io
+cp BREXX/* io
+cd io
+./cmsinstall.sh
+cd ..
+herccontrol "exit"
+rm -r io
+rm -r BREXX
+rm BREXX.zip
 
 # Run sanity test
 hercules -f hercules.conf -d >/dev/null 2>/dev/null &

@@ -3,17 +3,19 @@ FROM	ubuntu:latest
 
 RUN	apt-get update
 RUN apt-get install --no-install-recommends -y unzip wget netcat ca-certificates
-RUN apt-get install --no-install-recommends -y hercules
+RUN apt-get install --no-install-recommends -y hercules dos2unix
 
 WORKDIR     /opt/hercules/vm370
 
 # Local Config files
 COPY *.sh hercules.conf ./
+RUN dos2unix *.sh hercules.conf
 RUN chmod +x *.sh && \
 	  chmod -x hercules.conf
 
 # VM/370 Mods
 COPY mods/ ./mods/
+RUN dos2unix ./mods/*.sh
 RUN chmod +x ./mods/*.sh
 
 # Build & Sanity Test VM/370 Host

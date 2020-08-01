@@ -75,6 +75,15 @@ chmod +x *.sh
 ../shutdown.sh
 cd ..
 
+cd hrc403ds
+dos2unix *.sh
+chmod +x *.sh
+../iplmaint.sh
+./install.sh
+../buildnuc.sh
+../shutdown.sh
+cd ..
+
 cd ..
 herccontrol "exit"
 

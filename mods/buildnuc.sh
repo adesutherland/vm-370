@@ -32,10 +32,10 @@ herccontrol "/59"
 herccontrol "/yes"
 
 # DMSINI611R VERSION IDENTIFICATION =
-herccontrol "/"
+herccontrol "/CMS VERSION 6.0 DOCKER 1.4.21"
 
 # DMSINI612R INSTALLATION HEADING =
-herccontrol "/"
+herccontrol "/Conversional Monitor System"
 
 herccontrol "/" -w "^Ready;"
 

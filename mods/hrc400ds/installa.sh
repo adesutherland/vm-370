@@ -1,5 +1,5 @@
 #!/bin/sh
-# HRC400DS Mod - Thanks to Bob Bolch!
+# HRC400DS Mod - Contributed by Bob Bolch
 # Predicate - logged on as MAINT
 #           - Needs buildnuc.sh run afterwards
 # PART A - The MOD

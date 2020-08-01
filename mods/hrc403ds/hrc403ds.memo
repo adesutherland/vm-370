@@ -1,0 +1,119 @@
+This update expands the NUCON control block which maps low
+memory. Future enhancements need space in NUCON. IBM
+later rounded this are up to 4K. Doing this now allows
+future additions to NUCON to occupy the same storage location
+that IBM used in later systems. It avoids having to keep
+moving any other routines which load just after NUCON in
+memory. The EPLIST area is relocated to address X'E08' to
+match future IBM changes.
+
+New macro files:
+
+BGCOM    HRC403DS  - Changes S type address constants to AL2
+                     Some addresses constants in this part
+                     resolve to addresses > 4K.
+PIB2TAB  HRC403DS  - Changes S type address constants to AL2
+                     Some addresses constants in this part
+                     resolve to addresses > 4K.
+NUCON    HRC403DS  - Enlarges end of NUCON to address X'1000'
+                     Relocates NUCPLIST, added by a previous
+                     Sixpack update to address X'E08'
+
+Updates for assembler file:
+
+DMSNUC   HRC403DS  - Dummy update to force reassemble for
+                     NUCON update
+DMSINT   HRC403DS  - Dummy update to force reassemble for
+                     relocation of NUCPLIST
+
+Steps to apply:
+
+1. Add the line below, as the top line in the top level AUX file for
+   the changed files listed above: (In an unmodified Sixpack, the
+   top level AUX file has filetype AUXHRC.)
+
+HRC403DS V01 Expand NUCON to 4K for future extensions
+
+2. Add a line for each new MACRO or COPY file names to the highest
+   level library list file. (In an unmodified Sixpack, the library
+   list file is CMSHRC EXEC.) Add the lines below only if not
+   already present.
+
+&1 &2 BGCOM    MACRO
+&1 &2 PIB2TAB  MACRO
+
+3. Rebuild the top level CMS service MACLIB. (In an unmodified
+   Sixpack, the macro library control file is DMSMHRC CNTRL.)
+
+   VMFMAC CMSHRC DMSMHRC
+
+4. Recompile the updated assembler files. (In an unmodified
+   Sixpack, the assembler source control file is DMSHRC CNTRL.)
+
+   VMFASM DMSNUC DMSHRC
+   VMFASM DMSINT DMSHRC
+
+5. Rebuild the CMS nucleus using VMFLOAD with the
+   CMSLOAD EXEC build list, and IPL the nucleus
+   punch file to write the CMS nucleus on the disk.
+
+   spool punch *                       <-- send the CMS nucleus card image file
+                                              to the spool input queue
+   Ready; T=0.01/0.01 03:30:29
+
+   vmfload cmsload dmshrc              <--create the CMS nucleus card image file
+   SYSTEM LOAD DECK COMPLETE
+   PUN FILE 0709  TO  MAINT    COPY 01 NOHOLD   <--- '709' is the spool file number
+   Ready; T=0.12/0.36 03:30:47                       for the CMS Nucleus card deck
+
+   order rdr 709                       <--place the specific spool file at thetop of
+   0001 FILE  ORDERED                     queue of spool files to read
+   Ready; T=0.01/0.01 03:30:54
+
+   ipl 00C clear                       <--perform an Initial Program Load for the
+                                          CMS Nucleus card file and answer theprompts.
+   DMSINI606R SYSTEM DISK ADDRESS =
+   190
+   DMSINI615R Y-DISK ADDRESS =
+   19e
+   DMSINI607R REWRITE THE NUCLEUS ?
+   yes
+   DMSINI608R IPL DEVICE ADDRESS =
+   190
+   DMSINI609R NUCLEUS CYL ADDRESS =
+   59
+   DMSINI610R ALSO IPL CYLINDER 0 ?
+   yes
+   DMSINI611R VERSION IDENTIFICATION =
+   vm/370 Sixpack Test System          <-- set an up to 32 character msg shownwhen CMS is loaded by IPL
+   DMSINI612R INSTALLATION HEADING =
+   Conversional Monitor System         <-- set an up to 64 character msg placed on PRINT command output
+   VM/370 SIXPACK TEST SYSTEM
+
+   Y (19E) R/O
+
+   +-----------------------------------------------------------------------------+
+   |          Welcome to VM/370 and VM/380 "SixPack" version 1.3!  |
+   +-----------------------------------------------------------------------------+
+
+   Ready; T=0.01/0.05 03:32:26
+
+   spool printer * close                                   <-- save the CMS LOADMAP
+   PRT FILE 0711  TO  MAINT    COPY 01 NOHOLD                  to disk by ORDERing it to
+   Ready; T=0.01/0.01 03:32:38                                 the front of the reader queue
+                                                               and issuing 'READ CMSLOAD MAP'
+
+6. Resave the CMS saved segment.
+
+   ipl 290 clear
+   VM/370 SIXPACK TEST SYSTEM
+   savesys cmshigh                     <-- Must be the first command after IPL
+   SYSTEM SAVED
+   VM/370 SIXPACK TEST SYSTEM
+
+   Y (19E) R/O
+
+   +-----------------------------------------------------------------------------+
+   |          Welcome to VM/370 and VM/380 "SixPack" version 1.3!  |
+   +-----------------------------------------------------------------------------+
+   Ready; T=0.01/0.04 03:33:02

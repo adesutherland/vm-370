@@ -1,0 +1,24 @@
+./ I 329000 $ 329020 20
+         USING SCBLOCK,R3                                      HRC404DS
+         LA    R3,NUCSCBLK        SCBLOCKs anchor word         HRC404DS
+SCDEL    DS    0H                                              HRC404DS
+         LR    R2,R3              Lagging block pointer        HRC404DS
+SCDEL2   DS    0H                                              HRC404DS
+         ICM   R3,B'1111',SCBFWPTR Point to next SCBLOCK       HRC404DS
+         BZ    SCDEL3             Bif done                     HRC404DS
+         TM    SCBSFLAG,SCBSFSYS  Should we keep this one?     HRC404DS
+         BO    SCDEL              If so, on to the next        HRC404DS
+*                                 Remove from the chain        HRC404DS
+         MVC   SCBFWPTR-SCBLOCK(L'SCBFWPTR,R2),SCBFWPTR        HRC404DS
+         MVC   SCBFWPTR,NUCXCBEE  Add to the front             HRC404DS
+         ST    R3,NUCXCBEE           of the free block list    HRC404DS
+         LR    R3,R2              Point to previous            HRC404DS
+         B     SCDEL2             Loop to process next SCBLOCK HRC404DS
+SCDEL3   DS    0H                                              HRC404DS
+./ I 643000 $ 643100 100
+         L     R15,ASCANN          Call DMSSCNN to build PLIST HRC404DS
+./ R 644280 $ 644281 1
+         L     R5,NUCUPPER         Standard uppercase TR table HRC404DS
+./ D 644320 644820 $
+./ I 760000 $ 760100 100
+         SCBLOCK ,                                             HRC404DS

@@ -1,0 +1,15 @@
+./ R 403000 $ 403050 50
+*
+* Account for any Nucleus Extension storage not released at    HRC404DS
+* end of command.                                              HRC404DS
+         LA    R15,NUCXCBLK       Point to NUCEXT chain        HRC404DS
+NUCXNXT  DS    0H                                              HRC404DS
+         ICM   R15,B'1111',SCBFWPTR-SCBLOCK(R15) Next SCBLOCK  HRC404DS
+         BZ    NUCXDONE                                        HRC404DS
+         A     SUM,SCBXLEN-SCBLOCK(,R15) Add in any storage    HRC404DS
+         B     NUCXNXT            On to next block             HRC404DS
+NUCXDONE DS    0H                                              HRC404DS
+*                                                              HRC404DS
+         A     SUM,NUCXFRES       Account for any workareas    HRC404DS
+./ I 600000 $ 600100 100
+         SCBLOCK ,                                             HRC404DS

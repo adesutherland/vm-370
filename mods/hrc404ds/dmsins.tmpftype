@@ -1,0 +1,24 @@
+./ R 605000 $ 605020 20
+SKLOAD   DS    0H                                              HRC404DS
+************************************************************** HRC404DS
+* Initialize the 'CMS' subcommand entry point                  HRC404DS
+************************************************************** HRC404DS
+         L     R1,ADMSCSF     CMS subcommand entry point       HRC404DS
+         ST    R1,SUBCEPT     Set address in the plist         HRC404DS
+         LA    R1,SUBCPLST    Point to SUBCOM plist            HRC404DS
+         SVC   202                                             HRC404DS
+         DC    AL4(*+4)                                        HRC404DS
+*                                                              HRC404DS
+         LM    R0,R3,REGSAV   Restore registers                HRC404DS
+./ I 828000 $ 828020 20
+*                                                              HRC404DS
+SUBCPLST DS    0F                                              HRC404DS
+SUBCFNC  DC    CL8'SUBCOM  '                                   HRC404DS
+SUBCNME  DC    CL8'CMS     '  Subcom name                      HRC404DS
+         DC    X'00'          Interrupts off                   HRC404DS
+         DC    X'00'          Key zero                         HRC404DS
+         DC    X'80'          FLAGS                            HRC404DS
+         DC    X'00'                                           HRC404DS
+SUBCEPT  DS    AL4            Entry point address              HRC404DS
+SUBCUSR  DC    CL4' '         User provided information        HRC404DS
+         DC    8X'FF'                                          HRC404DS

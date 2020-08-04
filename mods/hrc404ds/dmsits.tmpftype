@@ -1,0 +1,109 @@
+./ I 432000 $ 432100 100
+* Support using AL4(1) as error address after SVC 202          HRC404DS
+* to allow code blocks to be moved to a different location.    HRC404DS
+* REXX function packages and other Nucleus Extensions          HRC404DS
+* may do this.                                                 HRC404DS
+         CLC   =F'1',ERRET-SSAVE+NRMSAV Was ERRET AL4(1)??     HRC404DS
+         BNE   *+8                     Skip next if not        HRC404DS
+         ST    R1,ERRET-SSAVE+NRMSAV  Set ERRET to NRMRET      HRC404DS
+./ I 445000 $ 445030 30
+*                                                              HRC404DS
+* Check for a call to a subcommand entry point                 HRC404DS
+         CLI   EGPR1,X'02'             SUBCOM call request?    HRC404DS
+         BL    S2EN                    Bif normal 000 or 01    HRC404DS
+         BH    S2B                     No, go check for        HRC404DS
+*                                       special X'03' or X'04' HRC404DS
+         LM    R0,R1,CALLEE            Name of callee routine  HRC404DS
+         BAL   RR,CHKSUBC              Find a SUBCOM entry     HRC404DS
+         LTR   XR,XR                   Did we?                 HRC404DS
+         BZ    GIVUP                   Not there, give error   HRC404DS
+         B     NUCX                    Process like NUCEXT     HRC404DS
+*                                                              HRC404DS
+S2B      DS    0H                                              HRC404DS
+         CLI   EGPR1,X'04'             NUCEXT prohibited?      HRC404DS
+         BH    S2EN                    Skip next if not        HRC404DS
+         NI    EGPR1,X'FF'-X'04'-X'02' Transform 3 to 1 and    HRC404DS
+*                                                4 to 0        HRC404DS
+         OI    SFLAG,SFNONUCX          Do not resolve to       HRC404DS
+*                                        a Nucleus Extension   HRC404DS
+*                                                              HRC404DS
+./ I 450000 $ 450100 100
+         TM    SFLAG,SFNONUCX          Do not resolve to NUCX? HRC404DS
+         BO    CHECKTA                 Skip next if so         HRC404DS
+         BAL   RR,CHKNUCX              Try to find NUCX        HRC404DS
+         LTR   XR,XR                   Found it?               HRC404DS
+         BNZ   NUCX                    Go to setup for call    HRC404DS
+CHECKTA  DS    0H                                              HRC404DS
+./ I 537000 $ 537020 20
+         B     START                   and go to START up      HRC404DS
+*                                                              HRC404DS
+* Here if the routine is a Nucleus Extension or a Subcommand.  HRC404DS
+* We have the address of a Nucleus Extension block in XR from  HRC404DS
+* which we can get all the information to build a PSW. We      HRC404DS
+* skip setting the bits in SFLAG and just build the PSW here.  HRC404DS
+NUCX     DS    0H                                              HRC404DS
+         USING SCBLOCK,XR                                      HRC404DS
+         XC    ITSPSW(8),ITSPSW        Build PSW here          HRC404DS
+         MVC   ITSPSW+4(4),SCBPSW+4    Set the address         HRC404DS
+         IC    R2,SCBPSW+1             Get the PSW Key byte    HRC404DS
+         N     R2,=A(X'000000F0')      Get the PSW Key         HRC404DS
+         STC   R2,ITSPSW+1             Set the PSW Key byte    HRC404DS
+         C     R2,=A(X'000000E0')      A NUC EXT can be either HRC404DS
+         BNE   KEYSYS                  'USER' or 'SYSTEM' key  HRC404DS
+         OI    TYPFLAG,TPFUSR                                  HRC404DS
+KEYSYS   DS    0H                                              HRC404DS
+         LR    R2,XR                   SCBLOCK address to R2   HRC404DS
+         L     R15,SCBPSW+4            Entry address to R15    HRC404DS
+         B     STARTX                  Rejoin below            HRC404DS
+         DROP  XR                                              HRC404DS
+*                                                              HRC404DS
+./ D 544000 547000 $
+./ I 558000 $ 558100 100
+*                                                              HRC404DS
+* STARTX is used to start up nucleus extensions.               HRC404DS
+*                                                              HRC404DS
+STARTX   DS    0H                                              HRC404DS
+         L     R13,USAVEPTR                                    HRC404DS
+         USING USAVE,R13          Address save area            HRC404DS
+         XC    USAVE(USAVESZ*8),USAVE Clear the save area      HRC404DS
+         DROP  R13                Finished with this           HRC404DS
+./ I 593000 $ 593020 20
+*                                                              HRC404DS
+* Check for a Subcommand call                                  HRC404DS
+CHKSUBC  DS    0H                                              HRC404DS
+         LA    R15,NUCSCBLK       List anchor                  HRC404DS
+         LA    XR,NUCSCBLK-(SCBFWPTR-SCBLOCK)                  HRC404DS
+*                                 Set ptr so L XR,SCBFWPTR     HRC404DS
+*                                   will point to 1st SUBCOM   HRC404DS
+         B     NUCXLP             Go search that chain         HRC404DS
+*                                                              HRC404DS
+* Check for a Nucleus Extension                                HRC404DS
+CHKNUCX  DS    0H                                              HRC404DS
+         LA    R15,NUCXCBLK       List anchor                  HRC404DS
+         LA    XR,NUCXCBLK-(SCBFWPTR-SCBLOCK)                  HRC404DS
+*                                 Set ptr so L XR,SCBFWPTR     HRC404DS
+*                                   will point to 1st NUCX     HRC404DS
+NUCXLP   DS    0H                                              HRC404DS
+         LR    R14,XR             Remember this element.       HRC404DS
+         L     XR,SCBFWPTR-SCBLOCK(,R14) Check next element    HRC404DS
+         LTR   XR,XR              Not found if end of chain    HRC404DS
+         BZR   RR                 Return 0 ptr to caller       HRC404DS
+         USING SCBLOCK,XR                                      HRC404DS
+         CL    R0,SCBNAME         Check                        HRC404DS
+         BNE   NUCXLP               SCBNAME for                HRC404DS
+         CL    R1,SCBNAME+4            a match                 HRC404DS
+         BNE   NUCXLP             No match, go check next      HRC404DS
+SEARCHGD DS    0H                                              HRC404DS
+         C     R14,NUCXCBLK       If found block is first on   HRC404DS
+         BER   RR                   chain, return to caller    HRC404DS
+         MVC   SCBFWPTR-SCBLOCK(4,R14),SCBFWPTR                HRC404DS
+*                                 Remove element from chain    HRC404DS
+         MVC   SCBFWPTR,0(R15)    Link to prior 1st element    HRC404DS
+         ST    XR,0(,R15)         Update chain anchor          HRC404DS
+         BR    RR                 Return to caller             HRC404DS
+         DROP  XR                                              HRC404DS
+*                                                              HRC404DS
+./ I 1441000 $ 1441100 100
+SFNONUCX EQU   X'02'              SFLAG bit for no Nucleus     HRC404DS
+*                                   Extension use wanted       HRC404DS
+         SCBLOCK ,                                             HRC404DS

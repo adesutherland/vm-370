@@ -18,7 +18,7 @@ unzip vm370.zip
 rm vm370.zip
 
 # Start Hercules
-hercules -f hercules.conf -d >/dev/null 2>/dev/null &
+(cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
 
 # YATA UBUNTU
 wget -nv https://github.com/adesutherland/yata/releases/download/v1.2.3/YATA-Ubuntu.zip
@@ -41,19 +41,54 @@ rm -r io
 rm -r YATA-CMS
 rm YATA-CMS.zip
 
+# Load a standalone version of BREXX for MAINT to load mods
+# MNTREXX on MAINTs A Drive
+wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v0.9.6/BREXX.zip
+unzip BREXX.zip
+mkdir io
+cp BREXX/* io
+cd io
+# IPL
+herccontrol "ipl 141" -w "USER DSC LOGOFF AS AUTOLOG1"
+# LOGON MAINT AND READ TAPE
+herccontrol "/cp disc" -w "^VM/370 Online"
+herccontrol "/logon maint cpcms" -w "^CMS VERSION"
+herccontrol "/" -w "^Ready;"
+herccontrol "devinit 480 io/brexxbin.aws" -w "^HHCPN098I"
+herccontrol "/attach 480 to maint as 181" -w "TAPE 480 ATTACH"
+# Load and rename BREXX at MNTREXX just for MAINT on A drive
+herccontrol "/tape load brexx module a" -w "^Ready;"
+herccontrol "/copy brexx module a mntrexx module a (replace" -w "^Ready;"
+herccontrol "/erase brexx module a" -w "^Ready;"
+# Done with tape & logoff
+herccontrol "/detach 181" -w "^Ready;"
+herccontrol "/logoff" -w "^VM/370 Online"
+# SHUTDOWN
+herccontrol "/logon operator operator" -w "RECONNECTED AT"
+herccontrol "/shutdown" -w "^HHCCP011I"
+herccontrol "exit"
+# Clean up
+cd ..
+rm -r io
+rm -r BREXX
+rm BREXX.zip
+
 # Apply VM/370 Mods
 cd mods
 
 cd hrc309ds
+(cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
 dos2unix *.sh
 chmod +x *.sh
 ../iplmaint.sh
 ./hrc309ds.sh
 ../buildnuc.sh
 ../shutdown.sh
+herccontrol "exit"
 cd ..
 
 cd hrc400ds
+(cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
 dos2unix *.sh
 chmod +x *.sh
 ../iplmaint.sh
@@ -64,31 +99,52 @@ chmod +x *.sh
 ./installb.sh
 ../regen.sh
 ../shutdown.sh
+herccontrol "exit"
 cd ..
 
 cd hrc402ds
+(cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
 dos2unix *.sh
 chmod +x *.sh
 ../iplmaint.sh
 ./install.sh
 ../buildnuc.sh
 ../shutdown.sh
+herccontrol "exit"
 cd ..
 
 cd hrc403ds
+(cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
 dos2unix *.sh
 chmod +x *.sh
 ../iplmaint.sh
 ./install.sh
 ../buildnuc.sh
 ../shutdown.sh
+herccontrol "exit"
+cd ..
+
+cd hrc404ds
+(cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
+dos2unix *.sh
+chmod +x *.sh
+../iplmaint.sh
+./installa.sh
+../buildnuc.sh
+../shutdown.sh
+../iplmaint.sh
+./installb.sh
+../regen.sh
+../shutdown.sh
+herccontrol "exit"
 cd ..
 
 cd ..
-herccontrol "exit"
+
+# Now load packages
 
 # GCCLIB
-hercules -f hercules.conf -d >/dev/null 2>/dev/null &
+(cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
 wget -nv https://github.com/adesutherland/CMS-370-GCCLIB/releases/download/v0.7.16/GCCLIB.zip
 unzip GCCLIB.zip
 chmod +x GCCLIB/cmsinstall.sh
@@ -103,7 +159,7 @@ rm -r GCCLIB
 rm GCCLIB.zip
 
 # CMS BREXX
-hercules -f hercules.conf -d >/dev/null 2>/dev/null &
+(cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
 wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v0.9.6/BREXX.zip
 unzip BREXX.zip
 chmod +x BREXX/cmsinstall.sh
@@ -118,7 +174,7 @@ rm -r BREXX
 rm BREXX.zip
 
 # Run sanity test
-hercules -f hercules.conf -d >/dev/null 2>/dev/null &
+(cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
 herccontrol "ipl 141" -w "USER DSC LOGOFF AS AUTOLOG1"
 herccontrol "/cp disc" -w "^VM/370 Online"
 herccontrol "/logon cmsuser cmsuser" -w "^CMS VERSION"
@@ -130,7 +186,7 @@ herccontrol "/shutdown" -w "^HHCCP011I"
 herccontrol "exit"
 
 # Compress disks
-hercules -f hercules.conf -d >/dev/null 2>/dev/null &
+(cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
 herccontrol "sfc*"
 herccontrol "sfk* 3"
 herccontrol "exit"

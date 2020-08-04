@@ -1,0 +1,4 @@
+./ I 72000 $ 72010 10
+TEMPLINE DS    CL255              DMSSCN uses this to          HRC404DS
+*                                 translate input lines to     HRC404DS
+*                                 uppercase                    HRC404DS

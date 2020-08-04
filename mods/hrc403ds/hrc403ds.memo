@@ -4,7 +4,7 @@ later rounded this are up to 4K. Doing this now allows
 future additions to NUCON to occupy the same storage location
 that IBM used in later systems. It avoids having to keep
 moving any other routines which load just after NUCON in
-memory. The EPLIST area is relocated to address X'E08' to
+memory. Tge EPLIST area is relocated to address X'E08' to
 match future IBM changes.
 
 New macro files:
@@ -105,9 +105,9 @@ HRC403DS V01 Expand NUCON to 4K for future extensions
 
 6. Resave the CMS saved segment.
 
-   ipl 290 clear
+   ipl 190 clear
    VM/370 SIXPACK TEST SYSTEM
-   savesys cmshigh                     <-- Must be the first command after IPL
+   savesys cms                         <-- Must be the first command after IPL
    SYSTEM SAVED
    VM/370 SIXPACK TEST SYSTEM
 

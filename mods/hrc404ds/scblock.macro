@@ -1,0 +1,51 @@
+         MACRO                                                          00010000
+         SCBLOCK                                                        00020000
+* This control block common between Nucleus Extensions and              00030000
+* subcommand processors. It is created by the NUCEXT or SUBCOM          00040000
+* macro.In the comments below, a reference to a Subcommand              00050000
+* means either a Subcommand or a Nucleus extention. These               00060000
+* blocks are kept on separate chains in NUCON.                          00070000
+SCBLOCK  DSECT                                                          00080000
+SCBFWPTR DS    F                  SCBLOCK chain pointer                 00090000
+*                                                                       00100000
+* The next field is a user word set by the NUCEXT or SUBCOM             00110000
+* macro. It is passed to extension by having R2 point to                00120000
+* the SCBLOCK on entry..                                                00130000
+SCBWKWRD DC    A(0)               User word                             00140000
+*                                                                       00150000
+SCBNAME  DS    CL8                Name of Subcommand                    00160000
+SCBPSW   DS    D                  Entry point BC mode PSW               00170000
+SCBENTR  EQU   SCBPSW+4           Entry point address                   00180000
+*                                                                       00190000
+* The following fields are used only by Nucleus Extensions.             00200000
+* They are not populated for Subcommand entry points on the             00210000
+* NUCSCBLK chain.                                                       00220000
+SCBSFLAG EQU   SCBPSW+2           SYSTEM flag byte                      00230000
+SCBSFSYS EQU   X'80'              This is a SYSTEM level extension      00240000
+*                                 which is not deleted during ABEND     00250000
+*                                 processing                            00260000
+SCBSFSER EQU   X'40'              This is a SERVICE routine which is    00270000
+*                                 called with the 'PURGE' parameter     00280000
+*                                 during ABEND processing               00290000
+*        PROCESSING.                                                    00300000
+SCBSFABN EQU   X'20'              USED DURING ABEND                     00310000
+*                                 PROCESSING.                           00320000
+SCBSFEND EQU   X'10'              DENOTES 'END OF COMMAND'              00330000
+*                                 ROUTINE                               00340000
+SCBSFINT EQU   SCBSFABN           USED DURING END OF COMMAND            00350000
+*                                 PROCESSING.                           00360000
+SCBUFLAG EQU   SCBPSW+3           USER FLAG BYTE.                       00370000
+*                                                                       00380000
+* These fields define where the Nucleus Extension code was              00390000
+* loaded in memory. NUCXDROP will release this memory.                  00400000
+SCBXORG  DS    A                  Load address of code                  00410000
+SCBXLEN  DS    F                  Length of the code in memory          00420000
+*                                                                       00430000
+SCBSFLG2 DS    X              F*2 Second flag byte                      00440000
+SCBSFUNC EQU   X'10'              Indicates functions cannot            00450000
+*                                 be invoked from cmd line              00460000
+*                                                                       00470000
+         DS    0D                 Round to dword boundary               00480000
+SCBLOCKB EQU   *-SCBLOCK          Length in bytes                       00490000
+SCBLOCKD EQU   (SCBLOCKB+7)/8     Length in doublewords                 00500000
+         MEND                                                           00510000

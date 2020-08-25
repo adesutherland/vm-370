@@ -15,10 +15,25 @@ SCDEL2   DS    0H                                              HRC404DS
          LR    R3,R2              Point to previous            HRC404DS
          B     SCDEL2             Loop to process next SCBLOCK HRC404DS
 SCDEL3   DS    0H                                              HRC404DS
+./ R 422000 $ 422020 20
+UPDAT    DS    0H                                              HRC404DS
+         ICM   R1,B'1111',NUCXEND And 'ENDCND' Nuc Extensions? HRC404DS
+         BZ    NUCXDONE           Skip this if not             HRC404DS
+         TM    SUBFLAG,SUBACT     Are we in SUBSET mode?       HRC404DS
+         BO    NUCXDONE           Skip this if so              HRC404DS
+         LA    R1,DMSSNXEC        Go call ENDCMD extensions    HRC404DS
+         SVC   202                                             HRC404DS
+         DC    AL4(*+4)                                        HRC404DS
+NUCXDONE DS    0H                                              HRC404DS
+         LA    R1,FINISLST    Close any OPEN file              HRC404DS
 ./ I 643000 $ 643100 100
          L     R15,ASCANN          Call DMSSCNN to build PLIST HRC404DS
 ./ R 644280 $ 644281 1
          L     R5,NUCUPPER         Standard uppercase TR table HRC404DS
 ./ D 644320 644820 $
+./ I 754300 $ 754310 10
+DMSSNXEC DS    0D                                              HRC404DS
+         DC    CL8'DMSSNXEC'                                   HRC404DS
+         DC    8X'FF'                                          HRC404DS
 ./ I 760000 $ 760100 100
          SCBLOCK ,                                             HRC404DS

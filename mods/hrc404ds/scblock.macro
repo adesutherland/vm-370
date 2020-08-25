@@ -28,13 +28,13 @@ SCBSFSER EQU   X'40'              This is a SERVICE routine which is    00270000
 *                                 called with the 'PURGE' parameter     00280000
 *                                 during ABEND processing               00290000
 *        PROCESSING.                                                    00300000
-SCBSFABN EQU   X'20'              USED DURING ABEND                     00310000
-*                                 PROCESSING.                           00320000
-SCBSFEND EQU   X'10'              DENOTES 'END OF COMMAND'              00330000
-*                                 ROUTINE                               00340000
-SCBSFINT EQU   SCBSFABN           USED DURING END OF COMMAND            00350000
-*                                 PROCESSING.                           00360000
-SCBUFLAG EQU   SCBPSW+3           USER FLAG BYTE.                       00370000
+SCBSFABN EQU   X'20'              Flag used during ABEND processing     00310000
+SCBSFEND EQU   X'10'              ENDCMD option specified               00320000
+SCBSFINT EQU   SCBSFABN           Flag used during ENDCMD processing    00330000
+SCBSPERM EQU   X'08'              Do not delete during NUCXDROP *       00340000
+SCBSHIDE EQU   X'01'              Hide a Nucleus Extension temporarily  00350000
+*                                                                       00360000
+SCBUFLAG EQU   SCBPSW+3           USER flag byte                        00370000
 *                                                                       00380000
 * These fields define where the Nucleus Extension code was              00390000
 * loaded in memory. NUCXDROP will release this memory.                  00400000

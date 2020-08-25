@@ -43,9 +43,9 @@ MAINLOOP DS    0H                                                       00220000
          MVC   ORIGIN(8),TEMPSAVE+8 Copy to output line                 00430000
 *                                                                       00440000
          L     R3,SCBXLEN         Code length in binary                 00450000
-         CVD   R3,TEMPSAVE        Binary to packed decimal              00460000
-         UNPK  TEMPSAVE+8(8),TEMPSAVE+3(5)   Unpack                     00470000
-         OI    TEMPSAVE+15,C'0'   Make printable                        00480000
+         ST    R3,TEMPSAVE               Binary                         00460000
+         UNPK  TEMPSAVE+8(9),TEMPSAVE(5) Unpack                         00470000
+         TR    TEMPSAVE+8(8),DMPTAB-C'0' Trans to hex chars             00480000
          MVC   BYTES(8),TEMPSAVE+8  Copy to output line                 00490000
 *                                                                       00500000
          MVC   AMODE(2),=C'24'                                          00510000
@@ -58,43 +58,61 @@ MAINLOOP DS    0H                                                       00220000
          BZ    *+10               Skip next if not                      00580000
          MVC   SERVICE,=C'SERVICE'                                      00590000
 *                                                                       00600000
-         WRTERM LINE,LINELEN      Show next output line                 00610000
-         ICM   R2,B'1111',SCBFWPTR                                      00620000
-         BNZ   MAINLOOP                                                 00630000
-         SR    R15,R15                                                  00640000
-GOBACK   DS    0H                                                       00650000
-         L     R14,12(,R13)                                             00660000
-         LM    R0,R12,20(R13)                                           00670000
-         BR    R14                                                      00680000
-*                                                                       00690000
-TITLE    DC    C'Name      Entry    Userword Origin   Bytes   Amode (At*00700000
-               tributes)'                                               00710000
-TITLELEN EQU   *-TITLE                                                  00720000
-*                                                                       00730000
-LINE     DS    0C                                                       00740000
-NAME     DC    CL8'Name'                                                00750000
-         DC    C'  '                                                    00760000
-ENTRY    DC    CL8'Entry'                                               00770000
-         DC    C' '                                                     00780000
-USERWORD DC    CL8'Userword'                                            00790000
-         DC    C' '                                                     00800000
-ORIGIN   DC    CL8'Origin'                                              00810000
-         DC    C' '                                                     00820000
-BYTES    DC    CL8'Bytes'                                               00830000
-         DC    C'   '                                                   00840000
-AMODE    DC    C'24'                                                    00850000
-         DC    C'  '                                                    00860000
-SYSTEM   DC    C'      '                                                00870000
-         DC    C' '                                                     00880000
-SERVICE  DC    C'       '                                               00890000
-LINELEN  EQU   *-LINE                                                   00900000
-*                                                                       00910000
-TEMPSAVE DS    D                                                        00920000
-         DS    CL9                                                      00930000
-*                                                                       00940000
-DMPTAB   DC    C'0123456789ABCDEF' Translate table to printable         00950000
-         EJECT ,                                                        00960000
-         REGEQU ,                                                       00970000
-         SCBLOCK ,                                                      00980000
-         NUCON ,                                                        00990000
-         END                                                            01000000
+         TM    SCBSFLAG,SCBSFEND  ENDCMD flag set?                      00610000
+         BZ    *+10               Skip next if not                      00620000
+         MVC   ENDCMD,=C'ENDCMD'                                        00630000
+*                                                                       00640000
+*        TM    SCBSFLAG,SCBSFSER  IMMCMD flag set?    Maybe later       00650000
+*        BZ    *+10               Skip next if not                      00660000
+*        MVC   IMMCMD,=C'IMMCMD'                                        00670000
+*                                                                       00680000
+         TM    SCBSFLAG,SCBSPERM  PERM flag set?                        00690000
+         BZ    *+10               Skip next if not                      00700000
+         MVC   PERM,=C'PERM'                                            00710000
+*                                                                       00720000
+         WRTERM LINE,LINELEN      Show next output line                 00730000
+         ICM   R2,B'1111',SCBFWPTR                                      00740000
+         BNZ   MAINLOOP                                                 00750000
+         SR    R15,R15                                                  00760000
+GOBACK   DS    0H                                                       00770000
+         L     R14,12(,R13)                                             00780000
+         LM    R0,R12,20(R13)                                           00790000
+         BR    R14                                                      00800000
+*                                                                       00810000
+TITLE    DC    C'Name      Entry    Userword Origin   Bytes   Amode (At*00820000
+               tributes)'                                               00830000
+TITLELEN EQU   *-TITLE                                                  00840000
+*                                                                       00850000
+LINE     DS    0C                                                       00860000
+NAME     DC    CL8'Name'                                                00870000
+         DC    C'  '                                                    00880000
+ENTRY    DC    CL8'Entry'                                               00890000
+         DC    C' '                                                     00900000
+USERWORD DC    CL8'Userword'                                            00910000
+         DC    C' '                                                     00920000
+ORIGIN   DC    CL8'Origin'                                              00930000
+         DC    C' '                                                     00940000
+BYTES    DC    CL8'Bytes'                                               00950000
+         DC    C'   '                                                   00960000
+AMODE    DC    C'24'                                                    00970000
+         DC    C'  '                                                    00980000
+SYSTEM   DC    C'      '                                                00990000
+         DC    C' '                                                     01000000
+SERVICE  DC    C'       '                                               01010000
+         DC    C' '                                                     01020000
+ENDCMD   DC    C'      '                                                01030000
+         DC    C' '                                                     01040000
+IMMCMD   DC    C'      '                                                01050000
+         DC    C' '                                                     01060000
+PERM     DC    C'    '                                                  01070000
+LINELEN  EQU   *-LINE                                                   01080000
+*                                                                       01090000
+TEMPSAVE DS    D                                                        01100000
+         DS    CL9                                                      01110000
+*                                                                       01120000
+DMPTAB   DC    C'0123456789ABCDEF' Translate table to printable         01130000
+         EJECT ,                                                        01140000
+         REGEQU ,                                                       01150000
+         SCBLOCK ,                                                      01160000
+         NUCON ,                                                        01170000
+         END                                                            01180000

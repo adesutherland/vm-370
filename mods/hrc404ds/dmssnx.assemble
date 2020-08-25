@@ -17,684 +17,920 @@ DMSSNX   CSECT                                                          00010000
 *                                                                       00170000
 *        DMSSNXSB - SUBCOM handling                                     00180000
 *        DMSSNXNU - NUCEXT handling                                     00190000
-*                                                                       00200000
-*  Entry conditions-                                                    00210000
+*        DMSSNXEC - NUCEXT ENDCMD processing                            00200000
+*        DMSSNXAB - NUCEXT ABEND processing                             00210000
 *                                                                       00220000
-*        For SUBCOM                                                     00230000
+*  Entry conditions-                                                    00230000
 *                                                                       00240000
-*         R1 points to a plist:                                         00250000
+*        For SUBCOM                                                     00250000
 *                                                                       00260000
-*         1) Create an environment                                      00270000
-*            DC  CL8'SUBCOM'                                            00280000
-*            DC  CL8'environment name'                                  00290000
-*            DC  4X'00'                 System Mask, Key, etc           00300000
-*            DC  AL4(entry point)       Environment address             00310000
-*            DC  CL4'user information'  to be put in SCBWKWRD           00320000
-*            DC  8X'FF'                                                 00330000
-*                                                                       00340000
-*         2) Query the existence of an environment                      00350000
-*            DC  CL8'SUBCOM'                                            00360000
-*            DC  CL8'environment name'                                  00370000
-*            DC  4X'00'                 SCBLOCK ptr set here            00380000
-*            DC  4X'FF'                                                 00390000
-*                                                                       00400000
-*         3) Query the chain anchor                                     00410000
-*            DC  CL8'SUBCOM'                                            00420000
-*            DS  CL8              (ignored)                             00430000
-*            DS  AL4              Receives chain anchor                 00440000
-*                                   contents from NUCSCBLK.             00450000
-*            DC  AL4(1)           Indicates request for anchor          00460000
-*                                                                       00470000
-*         4) Release an environment                                     00480000
-*            DC  CL8'SUBCOM'                                            00490000
-*            DC  CL8'environment name'                                  00500000
-*            DC  4X'00'                 reserved                        00510000
-*            DC  AL4(0)                                                 00520000
-*            DC  8X'ff'                                                 00530000
-*                                                                       00540000
-*   x     5) Load a list of SUBCOMs                                     00550000
-*   x        DC  CL8'SUBCOM'                                            00560000
-*   x        DS  CL8                    Not used                        00570000
-*   x        DC  AL4(list)              List of SUBCOMs to add          00580000
-*   x        DC  AL4(3)                 Function subcode                00590000
-*   x        DC  8X'ff'                                                 00600000
-*                                                                       00610000
-*   x     6) Drop all SUBCOMs in a given logical segment                00620000
-*   x        DC  cl8'SUBCOM'                                            00630000
-*   x        DC  cl8'segment name'      Segment name                    00640000
-*   x        DC  al4(0)                 Reserved                        00650000
-*   x        DC  al4(4)                 Function subcode                00660000
-*   x        DC  8x'ff'                                                 00670000
-*                                                                       00680000
-***********************************************************             00690000
-         EJECT ,                                                        00700000
-***********************************************************             00710000
-*                                                                       00720000
-*        For NUCEXT                                                     00730000
-*         R1 points to a plist:                                         00740000
-*                                                                       00750000
-*         1) Create a nucleus extension:                                00760000
-*            DC  cl8'nucext'                                            00770000
-*            DC  cl8'name'                                              00780000
-*            DS  3X                     First 3 bytes of                00790000
-*                                       entry psw.                      00800000
-*            DS  X                      NUCEXT flag byte                00810000
-*                                         System  = x'80'               00820000
-*                                         Service = x'40'               00830000
-*                                         Endcmd  = x'10'               00840000
-*                                         Segment = x'08'               00850000
-*                                         Immcmd  = x'04'               00860000
-*                                         Amode   = x'03'               00870000
-*                                                                       00880000
-*            Note:   Amode bits 6 & 7 for default = x'00'               00890000
-*                    Amode bits 6 & 7 for same    = x'00'               00900000
-*                    Amode bits 6 & 7 for 24 bit  = x'01'               00910000
-*                    Amode bits 6 & 7 for 31 bit  = x'02'               00920000
-*                    Amode bits 6 & 7 for any     = x'03'               00930000
-*                                                                       00940000
-*                                                                       00950000
-*            DS  X                      May be used for                 00960000
-*                                       private purpose.                00970000
-*            DC  AL3(entry point)       Extension address               00980000
-*            DC  CL4'user information'  set into SCBWKWRD               00990000
-*            DC  A(origin)              Addr of program                 01000000
-*            DC  A(length)              Length(bytes)                   01010000
-*                                                                       01020000
-*         2) Query the existence of a nucleus extension                 01030000
-*            DC  CL8'NUCEXT'                                            01040000
-*            DC  CL8'name'                                              01050000
-*            DC  4X'00'          will receive SCBLOCK address           01060000
-*            DC  X'ffffffff'     identifies the query function          01070000
-*                                                                       01080000
-*         3) Query the chain anchor                                     01090000
-*            DC  CL8'NUCEXT'                                            01100000
-*            DS  CL8              (contents not relevent)               01110000
-*            DS  AL4              will receive chain anchor             01120000
-*                                 contents from nucxcblk.               01130000
-*            DC  AL4(1)           indicates request for anchor          01140000
-*                                                                       01150000
-*         4) Cancel a nucleus extension                                 01160000
-*            DC  CL8'NUCEXT'                                            01170000
-*            DC  CL8'name'                                              01180000
-*            DC  4X'00'                 reserved                        01190000
-*            DC  AL4(0)         identifies the cancel function          01200000
-*                                                                       01210000
-*         5) Rename a nucleus extension                                 01220000
-*            DC  CL8'NUCEXT'                                            01230000
-*            DC  CL8'oldname'   old name of the nucleus ext             01240000
-*            DC  4X'00'         reserved                                01250000
-*            DC  AL4(2)         identifies the rename function          01260000
-*            DC  CL8'newname'   new name for the extension              01270000
-*            DC  8X'FF'         fence                                   01280000
-*                                                                       01290000
-*   x     6) load a list of nucexts                                     01300000
-*   x        dc  cl8'nucext'                                            01310000
-*   x        ds  cl8                    not used                        01320000
-*   x        dc  al4(list)              list of nucexts to add          01330000
-*   x        dc  al4(3)                 function subcode                01340000
-*   x        dc  8X'FF'                 fence                           01350000
-*                                                                       01360000
-*   x     7) drop all nucexts in a given logical segment                01370000
-*   x        dc  cl8'nucext'                                            01380000
-*   x        dc  cl8'segment name'      segment name                    01390000
-*   x        dc  al4(0)                 reserved                        01400000
-*   x        dc  al4(4)                 function subcode                01410000
-*   x        dc  8X'FF'                 fence                           01420000
-*                                                                       01430000
-* Exit conditions -                                                     01440000
+*         R1 points to a plist:                                         00270000
+*                                                                       00280000
+*         1) Create an environment                                      00290000
+*            DC  CL8'SUBCOM'                                            00300000
+*            DC  CL8'environment name'                                  00310000
+*            DC  4X'00'                 System Mask, Key, etc           00320000
+*            DC  AL4(entry point)       Environment address             00330000
+*            DC  CL4'user information'  to be put in SCBWKWRD           00340000
+*            DC  8X'FF'                                                 00350000
+*                                                                       00360000
+*         2) Query the existence of an environment                      00370000
+*            DC  CL8'SUBCOM'                                            00380000
+*            DC  CL8'environment name'                                  00390000
+*            DC  4X'00'                 SCBLOCK ptr set here            00400000
+*            DC  4X'FF'                                                 00410000
+*                                                                       00420000
+*         3) Query the chain anchor                                     00430000
+*            DC  CL8'SUBCOM'                                            00440000
+*            DS  CL8              (ignored)                             00450000
+*            DS  AL4              Receives chain anchor                 00460000
+*                                   contents from NUCSCBLK.             00470000
+*            DC  AL4(1)           Indicates request for anchor          00480000
+*                                                                       00490000
+*         4) Release an environment                                     00500000
+*            DC  CL8'SUBCOM'                                            00510000
+*            DC  CL8'environment name'                                  00520000
+*            DC  4X'00'                 reserved                        00530000
+*            DC  AL4(0)                                                 00540000
+*            DC  8X'ff'                                                 00550000
+*                                                                       00560000
+***********************************************************             00570000
+         EJECT ,                                                        00580000
+***********************************************************             00590000
+*                                                                       00600000
+*        For NUCEXT                                                     00610000
+*         R1 points to a plist:                                         00620000
+*                                                                       00630000
+*         1) Create a nucleus extension:                                00640000
+*            DC  cl8'nucext'                                            00650000
+*            DC  cl8'name'                                              00660000
+*            DS  3X                     First 3 bytes of                00670000
+*                                       entry psw.                      00680000
+*            DS  X                      NUCEXT flag byte                00690000
+*                                         System  = x'80'               00700000
+*                                         Service = x'40'               00710000
+*                                         Endcmd  = x'10'               00720000
+*                                         Segment = x'08'               00730000
+*                                         Immcmd  = x'04'               00740000
+*                                         Amode   = x'03'               00750000
+*                                                                       00760000
+*            Note:   Amode bits 6 & 7 for default = x'00'               00770000
+*                    Amode bits 6 & 7 for same    = x'00'               00780000
+*                    Amode bits 6 & 7 for 24 bit  = x'01'               00790000
+*                    Amode bits 6 & 7 for 31 bit  = x'02'               00800000
+*                    Amode bits 6 & 7 for any     = x'03'               00810000
+*                                                                       00820000
+*                                                                       00830000
+*            DS  X                      May be used for                 00840000
+*                                       private purpose.                00850000
+*            DC  AL3(entry point)       Extension address               00860000
+*            DC  CL4'user information'  set into SCBWKWRD               00870000
+*            DC  A(origin)              Addr of program                 00880000
+*            DC  A(length)              Length(bytes)                   00890000
+*                                                                       00900000
+*         2) Query the existence of a nucleus extension                 00910000
+*            DC  CL8'NUCEXT'                                            00920000
+*            DC  CL8'name'                                              00930000
+*            DC  4X'00'          will receive SCBLOCK address           00940000
+*            DC  X'ffffffff'     identifies the query function          00950000
+*                                                                       00960000
+*         3) Query the chain anchor                                     00970000
+*            DC  CL8'NUCEXT'                                            00980000
+*            DS  CL8              (contents not relevent)               00990000
+*            DS  AL4              will receive chain anchor             01000000
+*                                 contents from nucxcblk.               01010000
+*            DC  AL4(1)           indicates request for anchor          01020000
+*                                                                       01030000
+*         4) Cancel a nucleus extension                                 01040000
+*            DC  CL8'NUCEXT'                                            01050000
+*            DC  CL8'name'                                              01060000
+*            DC  4X'00'                 reserved                        01070000
+*            DC  AL4(0)         identifies the cancel function          01080000
+*                                                                       01090000
+*         5) Rename a nucleus extension                                 01100000
+*            DC  CL8'NUCEXT'                                            01110000
+*            DC  CL8'oldname'   old name of the nucleus ext             01120000
+*            DC  4X'00'         reserved                                01130000
+*            DC  AL4(2)         identifies the rename function          01140000
+*            DC  CL8'newname'   new name for the extension              01150000
+*            DC  8X'FF'         fence                                   01160000
+*                                                                       01170000
+* Exit conditions -                                                     01180000
+*                                                                       01190000
+*        R15 = 0 processing ok                                          01200000
+*        R15 = 1 environment does not exist                             01210000
+*        R15 = 25 no more storage available                             01220000
+*        R15 = 28 no SCBLOCK with the specified name was found          01230000
+*              to rename                                                01240000
+*                                                                       01250000
+*  Tables / Workareas -                                                 01260000
+*                                                                       01270000
+*        SCBLOCK                                                        01280000
+*        NUCON                                                          01290000
+*                                                                       01300000
+*  Register usage -                                                     01310000
+*                                                                       01320000
+*        R0     = used by DMSFREE                                       01330000
+*        RR(3)  = internal linkage register.                            01340000
+*        BR(5)  = base register.                                        01350000
+*        XR(8)  = SCBLOCK address                                       01360000
+*        R9     = return register                                       01370000
+*        R10    = Pointer to plist.                                     01380000
+*        R11    = address of chain anchor.                              01390000
+*        R14-15 linkage and work registers                              01400000
+*                                                                       01410000
+***********************************************************             01420000
+         EJECT ,                                                        01430000
+***********************************************************             01440000
 *                                                                       01450000
-*        R15 = 0 processing ok                                          01460000
-*        R15 = 1 environment does not exist                             01470000
-*        R15 = 25 no more storage available                             01480000
-*        R15 = 28 no SCBLOCK with the specified name was found          01490000
-*              to rename                                                01500000
-*                                                                       01510000
-*  Tables / Workareas -                                                 01520000
-*                                                                       01530000
-*        SCBLOCK                                                        01540000
-*        NUCON                                                          01550000
-*                                                                       01560000
-*  Register usage -                                                     01570000
-*                                                                       01580000
-*        R0     = used by DMSFREE                                       01590000
-*        RR(3)  = internal linkage register.                            01600000
-*        BR(5)  = base register.                                        01610000
-*        XR(8)  = SCBLOCK address                                       01620000
-*        R9     = return register                                       01630000
-*        R10    = Pointer to plist.                                     01640000
-*        R11    = address of chain anchor.                              01650000
-*        R14-15 linkage and work registers                              01660000
-*                                                                       01670000
-***********************************************************             01680000
-         EJECT ,                                                        01690000
-***********************************************************             01700000
-*                                                                       01710000
-* Operation -                                                           01720000
-*                                                                       01730000
-*   Routine - DMSSNXSB (SUBCOM)                                         01740000
-*                                                                       01750000
-*   1. If 'the psw address field is equal to 1' then:                   01760000
-*         return the contents of the appropriate                        01770000
-*         chain anchor in the first word of the psw                     01780000
-*         field in caller's plist.                                      01790000
-*      Else:                                                            01800000
-*         the SCBLOCK chain is searched.                                01810000
-*         If 'the environment name is not found' Then:                  01820000
-*            If 'the address in the specified psw                       01830000
-*               is 0 or x'ffffffff' ' then:                             01840000
-*                  a return code of 1 is given back                     01850000
-*                    to the caller.                                     01860000
-*               Else:                                                   01870000
-*                    goto step 2.                                       01880000
-*                                                                       01890000
-*         Else:                                                         01900000
-*         If 'the address specified in the psw in the                   01910000
-*            plist is 0' then:                                          01920000
-*              the environment is removed from the                      01930000
-*              chain and the SCBLOCK                                    01940000
-*              is released by calling DMSFRET.                          01950000
+* Operation -                                                           01460000
+*                                                                       01470000
+*   Routine - DMSSNXSB (SUBCOM)                                         01480000
+*                                                                       01490000
+*   1. If 'the psw address field is equal to 1' then:                   01500000
+*         return the contents of the appropriate                        01510000
+*         chain anchor in the first word of the psw                     01520000
+*         field in caller's plist.                                      01530000
+*      Else:                                                            01540000
+*         the SCBLOCK chain is searched.                                01550000
+*         If 'the environment name is not found' Then:                  01560000
+*            If 'the address in the specified psw                       01570000
+*               is 0 or x'ffffffff' ' then:                             01580000
+*                  a return code of 1 is given back                     01590000
+*                    to the caller.                                     01600000
+*               Else:                                                   01610000
+*                    goto step 2.                                       01620000
+*                                                                       01630000
+*         Else:                                                         01640000
+*         If 'the address specified in the psw in the                   01650000
+*            plist is 0' then:                                          01660000
+*              the environment is removed from the                      01670000
+*              chain and the SCBLOCK                                    01680000
+*              is released by calling DMSFRET.                          01690000
+*                                                                       01700000
+*         Else:                                                         01710000
+*         If 'the address is x'ffffffff' ' then:                        01720000
+*              the address of the SCBLOCK                               01730000
+*              is given back to the user in the                         01740000
+*              first four bytes of the psw in the plist.                01750000
+*         else:                                                         01760000
+*              a duplicate SCBLOCK is built (step 2.)                   01770000
+*         Return to caller.                                             01780000
+*                                                                       01790000
+*                                                                       01800000
+*   2. A new SCBLOCK is built in free storage. I there                  01810000
+*      is no more free storage, a return code of 25 is given            01820000
+*      back to the caller.  The new SCBLOCK is placed on the            01830000
+*      top of the chain.  The Name, PSW, and the User                   01840000
+*      information specified in the plist are moved into the            01850000
+*      SCBLOCK in storage. A return code of 0 is passed                 01860000
+*        to the caller.                                                 01870000
+         EJECT ,                                                        01880000
+*   Routine - DMSSNXNU (NUCEXT)                                         01890000
+*                                                                       01900000
+*  Processing is similar to that of DMSSNXSB, but a                     01910000
+*  separate chain of SCBLOCKs is defined at NUCXCBLK. This              01920000
+*  chain is not discarded between terminal input commands.              01930000
+*  it is the responsibility of the user to explicitly                   01940000
+*  delete Nucleus Extensions when they are no longer needed.            01950000
 *                                                                       01960000
-*         Else:                                                         01970000
-*         If 'the address is x'ffffffff' ' then:                        01980000
-*              the address of the SCBLOCK                               01990000
-*              is given back to the user in the                         02000000
-*              first four bytes of the psw in the plist.                02010000
-*         else:                                                         02020000
-*              a duplicate SCBLOCK is built (step 2.)                   02030000
-*         Return to caller.                                             02040000
-*                                                                       02050000
-*                                                                       02060000
-*   2. A new SCBLOCK is built in free storage. I there                  02070000
-*      is no more free storage, a return code of 25 is given            02080000
-*      back to the caller.  The new SCBLOCK is placed on the            02090000
-*      top of the chain.  The Name, PSW, and the User                   02100000
-*      information specified in the plist are moved into the            02110000
-*      SCBLOCK in storage. A return code of 0 is passed                 02120000
-*        to the caller.                                                 02130000
-         EJECT ,                                                        02140000
-*   Routine - DMSSNXNU (NUCEXT)                                         02150000
-*                                                                       02160000
-*  Processing is similar to that of DMSSNXSB, but a                     02170000
-*  separate chain of SCBLOCKs is defined at NUCXCBLK. This              02180000
-*  chain is not discarded between terminal input commands.              02190000
-*  it is the responsibility of the user to explicitly                   02200000
-*  delete Nucleus Extensions when they are no longer needed.            02210000
-*                                                                       02220000
-*  Implementation of the NUCEXT command affects the command             02230000
-*  resolution strategy of DMSITS when an SVC 202 is                     02240000
-*  processed.  Nucleus Extensions are normally sought before a          02250000
-*  module in the transient area or a function resident in               02260000
-*  the CMS Nucleus.                                                     02270000
-*  This gives the user the ability to intercept, filter,                02280000
-*  augment, etc., the "real" Nucleus functions.                         02290000
+*  Implementation of the NUCEXT command affects the command             01970000
+*  resolution strategy of DMSITS when an SVC 202 is                     01980000
+*  processed.  Nucleus Extensions are normally sought before a          01990000
+*  module in the transient area or a function resident in               02000000
+*  the CMS Nucleus.                                                     02010000
+*  This gives the user the ability to intercept, filter,                02020000
+*  augment, etc., the "real" Nucleus functions.                         02030000
+*                                                                       02040000
+*  The search for Nucleus Extensions may be suppressed by               02050000
+*  using a high-order byte of X'03' or X'04' in register 1              02060000
+*  when executing svc 202.  When the normal Nucleus routine or          02070000
+*  module is entered, this high-order byte will have been               02080000
+*  changed to X'01' or X'00', respectively.                             02090000
+*                                                                       02100000
+*  Parameter lists for calls to NUCEXT are analogous to                 02110000
+*  those for calls to SUBCOM.  There are some                           02120000
+*  additional flag bits which are defined in the                        02130000
+*  SCBPSW field of the SCBLOCK Dsect.  these bits                       02140000
+*  are supplied by the user in the corresponding                        02150000
+*  positions of the PSW parameter in the NUCEXT plist.                  02160000
+*                                                                       02170000
+*  There are also two additional words in the call to                   02180000
+*  create a nucleus extension, following the user word. These           02190000
+*  contain the address and length in bytes of the                       02200000
+*  program implementing the extension.  These 2 fields are              02210000
+*  commonly used by other programs concerned with establishing          02220000
+*  or deleting nucleus extensions. In one case they are used            02230000
+*  by dmsabe (see below).                                               02240000
+*                                                                       02250000
+*  Nucleus extensions may have or may not have                          02260000
+*  the "system" and/or the "service" attributes.                        02270000
+*  These attributes determine the handling of a                         02280000
+*  nucleus extension during abend processing.                           02290000
 *                                                                       02300000
-*  The search for Nucleus Extensions may be suppressed by               02310000
-*  using a high-order byte of X'03' or X'04' in register 1              02320000
-*  when executing svc 202.  When the normal Nucleus routine or          02330000
-*  module is entered, this high-order byte will have been               02340000
-*  changed to X'01' or X'00', respectively.                             02350000
-*                                                                       02360000
-*  Parameter lists for calls to NUCEXT are analogous to                 02370000
-*  those for calls to SUBCOM.  There are some                           02380000
-*  additional flag bits which are defined in the                        02390000
-*  SCBPSW field of the SCBLOCK Dsect.  these bits                       02400000
-*  are supplied by the user in the corresponding                        02410000
-*  positions of the PSW parameter in the NUCEXT plist.                  02420000
-*                                                                       02430000
-*  There are also two additional words in the call to                   02440000
-*  create a nucleus extension, following the user word. These           02450000
-*  contain the address and length in bytes of the                       02460000
-*  program implementing the extension.  These 2 fields are              02470000
-*  commonly used by other programs concerned with establishing          02480000
-*  or deleting nucleus extensions. In one case they are used            02490000
-*  by dmsabe (see below).                                               02500000
+*     If a nucleus extension has the "system"                           02310000
+*     attribute, it remains active after an                             02320000
+*     abend.  It is the user's responsibility                           02330000
+*     to see that such a nucleus extension is                           02340000
+*     loaded into nucleus storage, not user                             02350000
+*     storage which is released by DMSFRE during abend.                 02360000
+*                                                                       02370000
+*     If a nucleus extension has the "service"                          02380000
+*     attribute, it is called during abend                              02390000
+*     processing with the parameter list:                               02400000
+*                                                                       02410000
+*        DC    CL8'PURGE'                                               02420000
+*        DC    8X'ff'                                                   02430000
+*                                                                       02440000
+*     If a nucleus extension has the "service"                          02450000
+*     attribute, it is called at NUCXDROP                               02460000
+*     time with the parameter list:                                     02470000
+*                                                                       02480000
+*        DC    CL8'RESET'                                               02490000
+*        DC    8X'ff'                                                   02500000
 *                                                                       02510000
-*  Nucleus extensions may have or may not have                          02520000
-*  the "system" and/or the "service" attributes.                        02530000
-*  These attributes determine the handling of a                         02540000
-*  nucleus extension during abend processing.                           02550000
-*                                                                       02560000
-*     If a nucleus extension has the "system"                           02570000
-*     attribute, it remains active after an                             02580000
-*     abend.  It is the user's responsibility                           02590000
-*     to see that such a nucleus extension is                           02600000
-*     loaded into nucleus storage, not user                             02610000
-*     storage which is released by DMSFRE during abend.                 02620000
+* Other attributes that may be associated with a nucleus                02520000
+* extension are -                                                       02530000
+*                                                                       02540000
+*     If a nucleus extension has the "endcmd"                           02550000
+*     attribute, it is called during cms                                02560000
+*     end of command with the parameter list:                           02570000
+*                                                                       02580000
+*        DC    CL8'ENDCMD'        endcmd indicator                      02590000
+*        DS    F                  cms/cp command's return code          02600000
+*        DC    8X'ff'                                                   02610000
+*                                                                       02620000
 *                                                                       02630000
-*     If a nucleus extension has the "service"                          02640000
-*     attribute, it is called during abend                              02650000
-*     processing with the parameter list:                               02660000
+*  A nucleus extension may have "system", "service", and                02640000
+*  "endcmd" attributes in any combination.                              02650000
+*                                                                       02660000
 *                                                                       02670000
-*        DC    CL8'PURGE'                                               02680000
-*        DC    8X'ff'                                                   02690000
+*  Accounting during abend recovery for nucleus storage                 02680000
+*  used by nucleus extensions:                                          02690000
 *                                                                       02700000
-*     If a nucleus extension has the "service"                          02710000
-*     attribute, it is called at NUCXDROP                               02720000
-*     time with the parameter list:                                     02730000
-*                                                                       02740000
-*        DC    CL8'RESET'                                               02750000
-*        DC    8X'ff'                                                   02760000
-*                                                                       02770000
-* Other attributes that may be associated with a nucleus                02780000
-* extension are -                                                       02790000
-*                                                                       02800000
-*     If a nucleus extension has the "endcmd"                           02810000
-*     attribute, it is called during cms                                02820000
-*     end of command with the parameter list:                           02830000
-*                                                                       02840000
-*        DC    CL8'ENDCMD'        endcmd indicator                      02850000
-*        DS    F                  cms/cp command's return code          02860000
-*        DC    8X'ff'                                                   02870000
-*                                                                       02880000
+*     When a nucleus extension has the "system" attribute,              02710000
+*     it should be in nucleus storage and the length word               02720000
+*     is used by abend recovery to account for the amount               02730000
+*     of storage used by that program.                                  02740000
+*                                                                       02750000
+*     If a nucleus extension does not have the "system"                 02760000
+*     attribute, but is in nucleus storage anyway, that                 02770000
+*     storage will be released during abend recovery.                   02780000
+*                                                                       02790000
+*     When a nucleus extension obtains nucleus-type free                02800000
+*     storage other than what is accounted for by the origin            02810000
+*     and length fields in the SCBLOCK, it should either:               02820000
+*                                                                       02830000
+*         Use the "service" flag so that it is called                   02840000
+*         with the purge argument during abend, at which                02850000
+*         time it returns any nucleus-type storage                      02860000
+*         it obtained (but not that described in its                    02870000
+*         SCBLOCK).                                                     02880000
 *                                                                       02890000
-*  A nucleus extension may have "system", "service", and                02900000
-*  "endcmd" attributes in any combination.                              02910000
-*                                                                       02920000
-*                                                                       02930000
-*  Accounting during abend recovery for nucleus storage                 02940000
-*  used by nucleus extensions:                                          02950000
-*                                                                       02960000
-*     When a nucleus extension has the "system" attribute,              02970000
-*     it should be in nucleus storage and the length word               02980000
-*     is used by abend recovery to account for the amount               02990000
-*     of storage used by that program.                                  03000000
-*                                                                       03010000
-*     If a nucleus extension does not have the "system"                 03020000
-*     attribute, but is in nucleus storage anyway, that                 03030000
-*     storage will be released during abend recovery.                   03040000
-*                                                                       03050000
-*     When a nucleus extension obtains nucleus-type free                03060000
-*     storage other than what is accounted for by the origin            03070000
-*     and length fields in the SCBLOCK, it should either:               03080000
+*         If it has the "system" attribute, any extra nucleus           02900000
+*         storage which is to be kept through an abend should           02910000
+*         be accounted for by adding the length of such                 02920000
+*         storage into the NUCXFRES field in nucon.  It is              02930000
+*         good practice to update this field as soon as the             02940000
+*         storage is obtained; this is mandatory if the                 02950000
+*         nucleus extension does not have the "service"                 02960000
+*         attribute.                                                    02970000
+*                                                                       02980000
+*     Processing for rename subfunction:                                02990000
+*                                                                       03000000
+*     Initialize the return code to 28 (i.e. no SCBLOCK was             03010000
+*     found with the specified name).                                   03020000
+*                                                                       03030000
+*     Walk the SCBLOCK chain, looking for an SCBLOCK with a             03040000
+*     name that matches the first name specified by the                 03050000
+*     caller. when the first one is found, change its name to           03060000
+*     the second name passed by the caller, and set the return          03070000
+*     code to 0.                                                        03080000
 *                                                                       03090000
-*         Use the "service" flag so that it is called                   03100000
-*         with the purge argument during abend, at which                03110000
-*         time it returns any nucleus-type storage                      03120000
-*         it obtained (but not that described in its                    03130000
-*         SCBLOCK).                                                     03140000
-*                                                                       03150000
-*         If it has the "system" attribute, any extra nucleus           03160000
-*         storage which is to be kept through an abend should           03170000
-*         be accounted for by adding the length of such                 03180000
-*         storage into the NUCXFRES field in nucon.  It is              03190000
-*         good practice to update this field as soon as the             03200000
-*         storage is obtained; this is mandatory if the                 03210000
-*         nucleus extension does not have the "service"                 03220000
-*         attribute.                                                    03230000
-*                                                                       03240000
-*     Processing for rename subfunction:                                03250000
-*                                                                       03260000
-*     Initialize the return code to 28 (i.e. no SCBLOCK was             03270000
-*     found with the specified name).                                   03280000
-*                                                                       03290000
-*     Walk the SCBLOCK chain, looking for an SCBLOCK with a             03300000
-*     name that matches the first name specified by the                 03310000
-*     caller. when the first one is found, change its name to           03320000
-*     the second name passed by the caller, and set the return          03330000
-*     code to 0.                                                        03340000
-*                                                                       03350000
-*     Return to caller.                                                 03360000
-*                                                                       03370000
-*                                                                       03380000
-**************************************************************          03390000
-         EJECT                                                          03400000
-         USING NUCON,0                                                  03410000
-         USING DMSSNX,R12                                               03420000
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **          03430000
-*                                                            *          03440000
-*             SUBCOM    Handle SUBCOM command.               *          03450000
-*             NUCEXT    Handle NUCEXT command.               *          03460000
-*                                                            *          03470000
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **          03480000
-DMSSNXNU DS   0H                  NUCEXT entry.                         03490000
-         ENTRY DMSSNXNU                                                 03500000
-         STM   R14,R12,12(R13)    Save entry regs                       03510000
-         LR    R12,R15                                                  03520000
-         LA    R15,DMSSNXNU-DMSSNX                                      03530000
-         SLR   R12,R15            Set base                              03540000
-         LA    R11,NUCXCBLK       Set for NUCEXT                        03550000
-         B     SUBCOMC            Join below                            03560000
-*                                                                       03570000
-DMSSNXSB DS    0H                 SUBCOM entry.                         03580000
-         ENTRY DMSSNXSB                                                 03590000
-         STM   R14,R12,12(R13)    Save entry regs                       03600000
-         LR    R12,R15                                                  03610000
-         LA    R15,DMSSNXSB-DMSSNX                                      03620000
-         SLR   R12,R15            Set base                              03630000
-         LA    R11,NUCSCBLK       Set for SUBCOM                        03640000
-*                                                                       03650000
-*  Common code for NUCEXT and SUBCOM command processing.                03660000
-*  R11 contains address of appropriate chain anchor.                    03670000
-*                                                                       03680000
-SUBCOMC  DS    0H                                                       03690000
-         LR    R10,R1             Plist address                         03700000
-         USING SUBPLIST,R10                                             03710000
-*                                                                       03720000
-         LR    R15,R11            Chain anchor to R15                   03730000
-*                                 for SEARCHSB routine.                 03740000
-         CLC   FENCE,SUBPNAME     Any arguments?                        03750000
-         BE    NOARGS             No, that's strange                    03760000
-         CLC   SUBFUNC,=F'-1'     Check if query request.               03770000
-         BE    SCQUERY            Yes.                                  03780000
-         CLC   SUBFUNC,=F'0'      Clear entry request?                  03790000
-         BE    SCCLR              Yes.                                  03800000
-         CLC   SUBFUNC,=F'1'      Return anchor request?                03810000
-         BE    SCANCHOR           Yes                                   03820000
-         CLC   SUBFUNC,=F'2'      Rename request?                       03830000
-         BE    SCRENAME           Yes                                   03840000
-         B     SCSET              Go create an SCBLOCK                  03850000
-NOARGS   DS    0H                                                       03860000
-         LA    R15,1              RC = 1.                               03870000
-         B     DMSSNXIT           Done.                                 03880000
-*                                                                       03890000
-**************************************************************          03900000
-* RENAME an SCBLOCK.                                         *          03910000
-**************************************************************          03920000
-SCRENAME DS    0H                                                       03930000
-         LM    R0,R1,SUBPNAME     Get our old name                      03940000
-         BAL   R3,SEARCHSB        Go find this name                     03950000
-         BNZ   DMSSNXNF           Error if not found                    03960000
-         USING SCBLOCK,R8                                               03970000
-         MVC   SCBNAME(8),SUBNAME2     Change the name                  03980000
-         DROP  R8                                                       03990000
-         SLR   R15,R15                                                  04000000
-SCREN99  DS    0H                                                       04010000
-         B     DMSSNXIT           Done.                                 04020000
-*                                                                       04030000
-**************************************************************          04040000
-* Return chain anchor pointer.                               *          04050000
-**************************************************************          04060000
-SCANCHOR DS    0H                 Save plist address.                   04070000
-         MVC   SUBRETN,0(R11)     Copy contents of                      04080000
-*                                   chain anchor into plist             04090000
-*                                   to pass to caller.                  04100000
-         SLR   R15,R15                                                  04110000
-         B     DMSSNXIT           Done.                                 04120000
+*     Return to caller.                                                 03100000
+*                                                                       03110000
+*                                                                       03120000
+**************************************************************          03130000
+         EJECT                                                          03140000
+         USING NUCON,0                                                  03150000
+         USING DMSSNX,R12                                               03160000
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **          03170000
+*                                                            *          03180000
+*             SUBCOM    Handle SUBCOM command.               *          03190000
+*             NUCEXT    Handle NUCEXT command.               *          03200000
+*                                                            *          03210000
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **          03220000
+DMSSNXNU DS   0H                  NUCEXT entry.                         03230000
+         ENTRY DMSSNXNU                                                 03240000
+         STM   R14,R12,12(R13)    Save entry regs                       03250000
+         LR    R12,R15                                                  03260000
+         LA    R15,DMSSNXNU-DMSSNX                                      03270000
+         SLR   R12,R15            Set base                              03280000
+         LA    R11,NUCXCBLK       Set for NUCEXT                        03290000
+         B     SUBCOMC            Join below                            03300000
+*                                                                       03310000
+DMSSNXSB DS    0H                 SUBCOM entry.                         03320000
+         ENTRY DMSSNXSB                                                 03330000
+         STM   R14,R12,12(R13)    Save entry regs                       03340000
+         LR    R12,R15                                                  03350000
+         LA    R15,DMSSNXSB-DMSSNX                                      03360000
+         SLR   R12,R15            Set base                              03370000
+         LA    R11,NUCSCBLK       Set for SUBCOM                        03380000
+*                                                                       03390000
+*  Common code for NUCEXT and SUBCOM command processing.                03400000
+*  R11 contains address of appropriate chain anchor.                    03410000
+*                                                                       03420000
+SUBCOMC  DS    0H                                                       03430000
+         LR    R10,R1             Plist address                         03440000
+         USING SUBPLIST,R10                                             03450000
+*                                                                       03460000
+         LR    R15,R11            Chain anchor to R15                   03470000
+*                                 for SEARCHSB routine.                 03480000
+         CLC   FENCE,SUBPNAME     Any arguments?                        03490000
+         BE    NOARGS             No, that's strange                    03500000
+         CLC   SUBFUNC,=F'-1'     Check if query request.               03510000
+         BE    SCQUERY            Yes.                                  03520000
+         CLC   SUBFUNC,=F'0'      Clear entry request?                  03530000
+         BE    SCCLR              Yes.                                  03540000
+         CLC   SUBFUNC,=F'1'      Return anchor request?                03550000
+         BE    SCANCHOR           Yes                                   03560000
+         CLC   SUBFUNC,=F'2'      Rename request?                       03570000
+         BE    SCRENAME           Yes                                   03580000
+         B     SCSET              Go create an SCBLOCK                  03590000
+NOARGS   DS    0H                                                       03600000
+         LA    R15,1              RC = 1.                               03610000
+         B     DMSSNXIT           Done.                                 03620000
+*                                                                       03630000
+**************************************************************          03640000
+* RENAME an SCBLOCK.                                         *          03650000
+**************************************************************          03660000
+SCRENAME DS    0H                                                       03670000
+         LM    R0,R1,SUBPNAME     Get our old name                      03680000
+         BAL   R3,SEARCHSB        Go find this name                     03690000
+         BNZ   DMSSNXNF           Error if not found                    03700000
+         USING SCBLOCK,R8                                               03710000
+         MVC   SCBNAME(8),SUBNAME2     Change the name                  03720000
+         DROP  R8                                                       03730000
+         SLR   R15,R15                                                  03740000
+SCREN99  DS    0H                                                       03750000
+         B     DMSSNXIT           Done.                                 03760000
+*                                                                       03770000
+**************************************************************          03780000
+* Return chain anchor pointer.                               *          03790000
+**************************************************************          03800000
+SCANCHOR DS    0H                 Save plist address.                   03810000
+         MVC   SUBRETN,0(R11)     Copy contents of                      03820000
+*                                   chain anchor into plist             03830000
+*                                   to pass to caller.                  03840000
+         SLR   R15,R15                                                  03850000
+         B     DMSSNXIT           Done.                                 03860000
+*                                                                       03870000
+***************************************************************         03880000
+*  Clear entry request                                                  03890000
+***************************************************************         03900000
+SCCLR    DS    0H                                                       03910000
+         LM    R0,R1,SUBPNAME     Get our old name                      03920000
+         BAL   R3,SEARCHSB        Go find this name                     03930000
+         BNZ   DMSSNXNF           Error if not found                    03940000
+         USING SCBLOCK,R8                                               03950000
+         BAL   R3,SUBDROP         Delete the SCBLOCK,                   03960000
+         SLR   R15,R15            Set successful return code,           03970000
+         B     DMSSNXIT           Done.                                 03980000
+*                                                                       03990000
+***************************************************************         04000000
+*  QUERY request                                                        04010000
+***************************************************************         04020000
+SCQUERY  DS    0H                                                       04030000
+         LM    R0,R1,SUBPNAME     Get our old name                      04040000
+         BAL   R3,SEARCHSB        Go find this name                     04050000
+         BNZ   DMSSNXNF           Error if not found                    04060000
+         LR    R1,R8                                                    04070000
+         ST    R1,SUBRETN         Return address of the SCBLOCK.        04080000
+         SLR   R15,R15                                                  04090000
+         B     DMSSNXIT           Done.                                 04100000
+*                                                                       04110000
+* Subroutine to delete an SCBLOCK from the chain.                       04120000
 *                                                                       04130000
-***************************************************************         04140000
-*  Clear entry request                                                  04150000
-***************************************************************         04160000
-SCCLR    DS    0H                                                       04170000
-         LM    R0,R1,SUBPNAME     Get our old name                      04180000
-         BAL   R3,SEARCHSB        Go find this name                     04190000
-         BNZ   DMSSNXNF           Error if not found                    04200000
-         USING SCBLOCK,R8                                               04210000
-         BAL   R3,SUBDROP         Delete the SCBLOCK,                   04220000
-         SLR   R15,R15            Set successful return code,           04230000
-         B     DMSSNXIT           Done.                                 04240000
-*                                                                       04250000
-***************************************************************         04260000
-*  QUERY request                                                        04270000
-***************************************************************         04280000
-SCQUERY  DS    0H                                                       04290000
-         LM    R0,R1,SUBPNAME     Get our old name                      04300000
-         BAL   R3,SEARCHSB        Go find this name                     04310000
-         BNZ   DMSSNXNF           Error if not found                    04320000
-         LR    R1,R8                                                    04330000
-         ST    R1,SUBRETN         Return address of the SCBLOCK.        04340000
-         SLR   R15,R15                                                  04350000
-         B     DMSSNXIT           Done.                                 04360000
-*                                                                       04370000
-* Subroutine to delete an SCBLOCK from the chain.                       04380000
-*                                                                       04390000
-SUBDROP  DS    0H                                                       04400000
-         TM    SCBSFLAG,SCBSFEND  Is this an 'endcmd' nucleus           04410000
-*                                   extention?                          04420000
-         BZ    NOTEND             No skip this                          04430000
-         L     R15,NUCXEND        Get count of currently active         04440000
-*                                 'endcmd' nucleus extentions           04450000
-         BCTR  R15,0              Decrement this by one                 04460000
-         ST    R15,NUCXEND        Store new count                       04470000
-NOTEND   DS    0H                                                       04480000
-         MVC   SCBFWPTR-SCBLOCK(,R11),SCBFWPTR-SCBLOCK(R8)              04490000
-*                                 Unchain SCBLOCK.                      04500000
-*  (Remember, the searchsb routine moved the SCBLOCK to                 04510000
-*  the head of the chain, whose anchor address is in R11.)              04520000
-         MVC   SCBFWPTR-SCBLOCK(,R8),NUCXCBEE  Put on free list         04530000
-         ST    R8,NUCXCBEE        Update free list pointer.             04540000
-         BR    R3                                                       04550000
-*                                                                       04560000
-         DROP  R8                                                       04570000
+SUBDROP  DS    0H                                                       04140000
+         TM    SCBSFLAG,SCBSFEND  Is this an 'endcmd' nucleus           04150000
+*                                   extention?                          04160000
+         BZ    NOTEND             No skip this                          04170000
+         L     R15,NUCXEND        Get count of currently active         04180000
+*                                 'endcmd' nucleus extentions           04190000
+         BCTR  R15,0              Decrement this by one                 04200000
+         ST    R15,NUCXEND        Store new count                       04210000
+NOTEND   DS    0H                                                       04220000
+         MVC   SCBFWPTR-SCBLOCK(,R11),SCBFWPTR-SCBLOCK(R8)              04230000
+*                                 Unchain SCBLOCK.                      04240000
+*  (Remember, the searchsb routine moved the SCBLOCK to                 04250000
+*  the head of the chain, whose anchor address is in R11.)              04260000
+         MVC   SCBFWPTR-SCBLOCK(,R8),NUCXCBEE  Put on free list         04270000
+         ST    R8,NUCXCBEE        Update free list pointer.             04280000
+         BR    R3                                                       04290000
+*                                                                       04300000
+         DROP  R8                                                       04310000
+*                                                                       04320000
+***************************************************************         04330000
+*  Create a new subcommand block                                        04340000
+***************************************************************         04350000
+SCSET    DS    0H                 New SCBLOCK from free list.           04360000
+         ICM   R1,B'1111',NUCXCBEE  first block on list.                04370000
+         BNZ   GOTNEW             Br if one found on free list.         04380000
+         BAL   R3,GETCACHE        Allocate some more SCBLOCKs.          04390000
+         LTR   R15,R15            Return if no space.                   04400000
+         BNZ   DMSSNXIT           Done. Return R15 = 25                 04410000
+*                                                                       04420000
+GOTNEW   DS    0H                                                       04430000
+         USING SCBLOCK,R1                                               04440000
+         MVC   NUCXCBEE,SCBFWPTR  Remove block from free list.          04450000
+         XC    SCBSFLG2,SCBSFLG2  Clear flag byte                       04460000
+         MVC   SCBNAME,SUBPNAME   Enter subcommand name                 04470000
+         MVC   SCBPSW(2),SUBPSW   System mask and Protect Key           04480000
+         MVC   SCBSFLAG,SUBSYSF   System Flag bits                      04490000
+         MVC   SCBUFLAG,SUBUSRF   User Flag bits                        04500000
+         MVC   SCBENTR,SUBADDR    Entry point                           04510000
+         MVC   SCBWKWRD,SUBWKRD     and user information                04520000
+         MVC   SCBXORG,SUBXORG    Copy origin and length                04530000
+         MVC   SCBXLEN,SUBXLEN        values.                           04540000
+*                                                                       04550000
+         MVC   SCBFWPTR,SCBFWPTR-SCBLOCK(R11) Add new block             04560000
+         ST    R1,0(,R11)                  at head of chain.            04570000
 *                                                                       04580000
-***************************************************************         04590000
-*  Create a new subcommand block                                        04600000
-***************************************************************         04610000
-SCSET    DS    0H                 New SCBLOCK from free list.           04620000
-         ICM   R1,B'1111',NUCXCBEE  first block on list.                04630000
-         BNZ   GOTNEW             Br if one found on free list.         04640000
-         BAL   R3,NEEDMORE        Allocate some more SCBLOCKs.          04650000
-         LTR   R15,R15            Return if no space.                   04660000
-         BNZ   DMSSNXIT           Done. Return R15 = 25                 04670000
-*                                                                       04680000
-GOTNEW   DS    0H                                                       04690000
-         USING SCBLOCK,R1                                               04700000
-         MVC   NUCXCBEE,SCBFWPTR  Remove block from free list.          04710000
-         XC    SCBSFLG2,SCBSFLG2  Clear flag byte                       04720000
-         MVC   SCBNAME,SUBPNAME   Enter subcommand name                 04730000
-         MVC   SCBPSW(2),SUBPSW   System mask and Protect Key           04740000
-         MVC   SCBSFLAG,SUBSYSF   Flag bits                             04750000
-         MVC   SCBENTR,SUBADDR    Entry point                           04760000
-         MVC   SCBWKWRD,SUBWKRD     and user information                04770000
-         MVC   SCBXORG,SUBXORG    Copy origin and length                04780000
-         MVC   SCBXLEN,SUBXLEN        values.                           04790000
-*                                                                       04800000
-         MVC   SCBFWPTR,SCBFWPTR-SCBLOCK(R11)    PUT NEW BLOCK          04810000
-         ST    R1,0(,R11)    AT HEAD OF CHAIN.                          04820000
-*                                                                       04830000
-         CLC   SUBPLIST,=CL8'SUBCOM' Check for SUBCOM request.          04840000
-         BNE   GOTNUCE           NO NEED TO CHECK FLAGS.                04850000
-         NI    SCBSFLAG,SCBSFSYS RESET ANY INVALID FLAGS.               04860000
-*                                                                       04870000
-*        User cannot set look-aside, abend, or hide bits.               04880000
-GOTNUCE  DS    0H                                                       04890000
-*$$$$$$$ NI    SCBSFLAG,X'FF'-SCBSFX-SCBSFABN-SCBSHIDE                  04900000
-         TM    SCBSFLAG,SCBSFEND  IS THIS A 'ENDCMD' NUCLEUS            04910000
-*                                 EXTENTION ??                          04920000
-         BZ    NOENDCMD           NO, SKIP THIS                         04930000
-         L     R15,NUCXEND        GET COUNT OF CURRENTLY ACTIVE         04940000
-*                                 'ENDCMD' NUCLEUS EXTENTIONS           04950000
-         LA    R15,1(,R15)        INCREMENT THIS BY ONE                 04960000
-         ST    R15,NUCXEND        STORE NEW COUNT                       04970000
-NOENDCMD DS    0H                                                       04980000
-         SLR   R15,R15            Successful Return Code.               04990000
-         B     DMSSNXIT           Done. Return R15 = 0                  05000000
-         DROP  R1                 SCBLOCK.                              05010000
-*                                                                       05020000
-***************************************************************         05030000
-*  Return to our caller. Requested SCBLOCK was not found.               05040000
-***************************************************************         05050000
-DMSSNXNF DS    0H                                                       05060000
-         LA    R15,NOTFOUND       Set our "not found" rc                05070000
+         CLC   SUBPLIST,=CL8'SUBCOM' Check for SUBCOM request.          04590000
+         BNE   GOTNUCE           No need to chack flags.                04600000
+         NI    SCBSFLAG,SCBSFSYS Reset any invalid flags.               04610000
+*                                                                       04620000
+*        User cannot set abend or hide bits.                            04630000
+GOTNUCE  DS    0H                                                       04640000
+         NI    SCBSFLAG,X'FF'-SCBSFABN-SCBSHIDE                         04650000
+         TM    SCBSFLAG,SCBSFEND  ENDCMD specified?                     04660000
+         BZ    NOENDCMD           If not skip down                      04670000
+         L     R15,NUCXEND        Increment count of                    04680000
+         LA    R15,1(,R15)          ENDCMD extensions                   04690000
+         ST    R15,NUCXEND            for DMSINT                        04700000
+NOENDCMD DS    0H                                                       04710000
+         SLR   R15,R15            Successful Return Code.               04720000
+         B     DMSSNXIT           Done. Return R15 = 0                  04730000
+         DROP  R1                 SCBLOCK.                              04740000
+*                                                                       04750000
+***************************************************************         04760000
+*  Return to our caller. Requested SCBLOCK was not found.               04770000
+***************************************************************         04780000
+DMSSNXNF DS    0H                                                       04790000
+         LA    R15,1              Set our not found rc                  04800000
+*                                                                       04810000
+***************************************************************         04820000
+*  Return to our caller. RC is in R15                                   04830000
+***************************************************************         04840000
+DMSSNXIT DS    0H                                                       04850000
+         L     R14,12(,R13)       Return address                        04860000
+         LM    R0,R12,20(R13)     Pass back R15                         04870000
+         BR    R14                Return to DMSITS                      04880000
+         EJECT                                                          04890000
+**************************************************************          04900000
+*                                                            *          04910000
+*        DMSSNXEC       End of Command processing            *          04920000
+*                                                            *          04930000
+* Call all Nucleus Extensions with the ENDCMD attribute.     *          04940000
+* Because the chain could be rearranged during processing    *          04950000
+* we mark each block we look at during an iteration, and     *          04960000
+* start the search for the next one at the beginning of the  *          04970000
+* chain each time, ignoring the marked blocks.               *          04980000
+**************************************************************          04990000
+         USING NUCXPL,R7                                                05000000
+         USING SCBLOCK,R8                                               05010000
+DMSSNXEC DS    0H                                                       05020000
+         ENTRY DMSSNXEC                                                 05030000
+         STM   R14,R12,12(R13)    Save entry regs                       05040000
+         LR    R12,R15                                                  05050000
+         LA    R15,DMSSNXEC-DMSSNX                                      05060000
+         SLR   R12,R15            Set base                              05070000
 *                                                                       05080000
-***************************************************************         05090000
-*  Return to our caller. RC is in R15                                   05100000
-***************************************************************         05110000
-DMSSNXIT DS    0H                                                       05120000
-         L     R14,12(,R13)       Return address                        05130000
-         LM    R0,R12,20(R13)     Pass back R15                         05140000
-         BR    R14                Return to DMSITS                      05150000
-         EJECT                                                          05160000
-***************************************************************         05170000
-*  Subroutine to allocate a new bunch of SCBLOCKs.                      05180000
-***************************************************************         05190000
+         LA    R0,NUCXPLL         Work area for CMSCALL                 05090000
+         DMSFREE DWORDS=(0),MSG=NO,TYPCALL=BALR,TYPE=NUCLEUS            05100000
+         LR    R7,R1                                                    05110000
+* First reset any leftover bits from any previous call                  05120000
+         LA    R8,NUCXCBLK        Start at the top                      05130000
+NXEC010  DS    0H                                                       05140000
+         ICM   R8,B'1111',SCBFWPTR Get address of next block.           05150000
+         BZ    NXEC020            If at the end, then exit              05160000
+         NI    SCBSFLAG,X'FF'-SCBSFINT-SCBSHIDE                         05170000
+         B     NXEC010                                                  05180000
+NXEC020  DS    0H                                                       05190000
 *                                                                       05200000
-*  Input:  R3 = return address.                                         05210000
-*                                                                       05220000
-*  Output:  R15 = 0, more SCBLOCKs are on the free list.                05230000
-*           R1  = address of new SCBLOCK (the same value                05240000
-*                 which is stored in nucxcbee).                         05250000
-*                                                                       05260000
-*           R15 = 25, no space available.                               05270000
-*                                                                       05280000
-*  THE FOLLOWING REGISTERS ARE ALSO MODIFIED BY THIS ROUTINE:           05290000
-*  R0, R8, R14                                                          05300000
-*                                                                       05310000
-NEEDMORE DS    0H                                                       05320000
-*                                                                       05330000
-*  Define the number of additional SCBLOCKs to be allocated in          05340000
-*  a contiguous storage area.                                           05350000
-*  In this case, set it to be one page of SCBLOCKs.                     05360000
+         LA    R8,NUCXCBLK        Start at the top                      05210000
+NXEC030  DS    0H                                                       05220000
+         ICM   R8,B'1111',SCBFWPTR Get address of next block.           05230000
+         BZ    NXEC040            If at the end, then exit              05240000
+*                                                                       05250000
+         TM    SCBSFLAG,SCBSFINT  Have we been here before?             05260000
+         BO    NXEC030            Yes, only try once.                   05270000
+         OI    SCBSFLAG,SCBSFINT  Set flag denoting this                05280000
+*                                 block processed.                      05290000
+         TM    SCBSFLAG,SCBSFEND  IS IT AN "ENDCMD" ROUTINE             05300000
+         BZ    NXEC030            NO, CHECK THE NEXT ONE                05310000
+*                                                                       05320000
+**************************************************************          05330000
+* Mask any other blocks with the same extension name         *          05340000
+**************************************************************          05350000
+         BAL   R14,NUCXMASK                                             05360000
 *                                                                       05370000
-         L     R0,=A(2*4096)      Get 8K bytes in dwords                05380000
-         LR    R5,R0              Hold byte count                       05390000
-         SRL   R0,3               Size in doublewords                   05400000
-         DMSFREE DWORDS=(0),MSG=NO,TYPCALL=BALR,                       *05410000
-               TYPE=NUCLEUS,ERR=NOSPACE                                 05420000
-         LA    R4,0(,R1)          1st byte allocated                    05430000
-         LA    R5,0(R4,R5)        Point past last byte LL=BRANCH        05440000
-*                                                                       05450000
-*  R4->   +--------------------------------------------------+          05460000
-*                                                                       05470000
-*           Bytes before page boundary. If we happen to have            05480000
-*           allocated the area on a page boundary, the size             05490000
-*           of this area will be zero.                                  05500000
-*                                                                       05510000
-*  (A)->  +-------page boundary------------------------------+          05520000
-*                                                                       05530000
-*                                                                       05540000
-*         .                                                  .          05550000
-*         .                                                  .          05560000
-*         .                                                  .          05570000
-*                                                                       05580000
-*                                                                       05590000
-*  (B)    +-------page boundary------------------------------+          05600000
-*                                                                       05610000
-*            Bytes past page boundary                                   05620000
-*                                                                       05630000
-*         +--------------------------------------------------+          05640000
-*  R5->     Points past last allocated byte                             05650000
-*                                                                       05660000
-         LA    R0,4095(,R4)       Get address of next                   05670000
-         N     R0,=A(X'FFFFF000')       page boundary at (A)            05680000
-*                                                                       05690000
-         SR    R0,R4              Number bytes before bndry             05700000
-         BZ    GETPAGE2           Bif no bytes before bndry             05710000
-         LR    R1,R4              R0=Bytes to ret. R1=addr              05720000
-         AR    R4,R0              R2=Ptr to 1st page bndry              05730000
-         SRL   R0,3               Size in doublewords                   05740000
-*                                 Fret bytes before page                05750000
-         DMSFRET DWORDS=(0),LOC=(1),TYPCALL=BALR                        05760000
-GETPAGE2 DS    0H                                                       05770000
-         LR    R1,R5              Get address                           05780000
-         N     R1,=A(X'FFFFF000')    of ending page bndry (B)           05790000
-         LR    R0,R5              Past the last byte                    05800000
-         LR    R5,R1              Remember address past end             05810000
-*                                    of the last page                   05820000
-         SR    R0,R1              Length to fret at end                 05830000
-         BZ    GETPAGE3           Bif no bytes to fret                  05840000
-*                                 (Can't happen??)                      05850000
-*                                 R0=Bytes to ret. R1=addr              05860000
-         SRL   R0,3               Size in doublewords                   05870000
-*                                 Fret dwords after page bndry          05880000
-         DMSFRET DWORDS=(0),LOC=(1),TYPCALL=BALR                        05890000
-GETPAGE3 DS    0H                                                       05900000
-         LR    R0,R5              Address just past end                 05910000
-*                                    of the last page                   05920000
-         LR    R1,R4              Address of start of area              05930000
-         SR    R0,R1              Length of allocated area              05940000
-*                                                                       05950000
-         ST    R1,NUCXCBEE        Save pointer to page                  05960000
-         USING SCBLOCK,R1                                               05970000
-         L     R0,=A(4096/SCBLOCKB-1) Number of SCBLOCKs - 1            05980000
-NEEDMLP  DS    0H                                                       05990000
-         XC    SCBLOCK(SCBLOCKB),SCBLOCK  clear the new block.          06000000
-         LA    R15,SCBLOCKB(,R1)  Locate the next block.                06010000
-         ST    R15,SCBFWPTR       Store link.                           06020000
-         LR    R1,R15                                                   06030000
-         BCT   R0,NEEDMLP         Loop for all but last block.          06040000
-         XC    SCBLOCK(SCBLOCKB),SCBLOCK  clear the last block.         06050000
-         SLR   R15,R15            Set successful return code.           06060000
-         L     R1,NUCXCBEE        Return the address of first           06070000
-*                                 Scblock in the free list.             06080000
-         BR    R3                 Return to caller.                     06090000
-         DROP  R1                 SCBLOCK.                              06100000
-*                                                                       06110000
-NOSPACE  DS    0H                                                       06120000
-         LA    R15,25             RC=25                                 06130000
-         BR    R3                 Return to caller                      06140000
-         EJECT                                                          06150000
-***************************************************************         06160000
-*  Search a subcommand or nucleus extension chain.                      06170000
-***************************************************************         06180000
-*                                                                       06190000
-*  Inputs:  R0, R1  = Command name.                                     06200000
-*           R15     = Address of chain header --                        06210000
-*                     not changed by this subroutine.                   06220000
-*           R3      = Return address.                                   06230000
-*                                                                       06240000
-*  Outputs: CC      = 0 if found                                        06250000
-*           CC     <> 0 if not found                                    06260000
-*           R8 (R8) = address of chain element                          06270000
-*                                                                       06280000
-*  Uses R14, R8  as work registers.                                     06290000
-*                                                                       06300000
-*  Whenever a match is found, the block found is promoted               06310000
-*  to the head of the chain.                                            06320000
-*                                                                       06330000
-         USING SCBLOCK,R14                                              06340000
-SEARCHSB DS    0H                                                       06350000
-         LR    R14,R15            Preserve chain anchor                 06360000
-*                                 In r15 for caller.                    06370000
-         B     SEARCHL2                                                 06380000
-SEARCHLP DS    0H                                                       06390000
-         LR    R14,R8             Remember this element.                06400000
-SEARCHL2 DS    0H                                                       06410000
-         L     R8,SCBFWPTR        Get address of next element.          06420000
-         LTR   R8,R8              Branch if end of chain.               06430000
-         BZ    SEARCHNF                                                 06440000
-         DROP  R14                                                      06450000
-         USING SCBLOCK,R8                                               06460000
-         CL    R0,SCBNAME         Branch if not desired                 06470000
-         BNE   SEARCHLP           Element.                              06480000
-         CL    R1,SCBNAME+4       Also check second half of             06490000
-         BNE   SEARCHLP           Nope, keep searching                  06500000
-SEARCHGD DS    0H                                                       06510000
-         CR    R14,R15            Branch if first on chain.             06520000
-         BER   R3                 Return to caller                      06530000
-         MVC   SCBFWPTR-SCBLOCK(4,R14),SCBFWPTR  Remove found           06540000
-*                                   element from chain.                 06550000
-         MVC   SCBFWPTR,0(R15)    Link to prior first element.          06560000
-         ST    R8,0(R15)          Update chain anchor.                  06570000
-         CR    R15,R15            Set cc = 0.                           06580000
-         BR    R3                 Return to caller                      06590000
-         DROP  R8                                                       06600000
-SEARCHNF DS    0H                                                       06610000
-         LTR   R3,R3              Set cc <> 0.                          06620000
-         BR    R3                 Return                                06630000
-         EJECT                                                          06640000
-         LTORG ,                                                        06650000
-*                                                                       06660000
-         DS    0D                                                       06670000
-FENCE    DC    XL8'FFFFFFFFFFFFFFFF'                                    06680000
-         LTORG                                                          06690000
-         EJECT                                                          06700000
-*                                                                       06710000
-NOTFOUND EQU   1              Used by RENAME NUCEXT function            06720000
-*                                                                       06730000
-* Subcommand Plist for NUCEXT and SUBCOM calls                          06740000
-*                                                                       06750000
-SUBPLIST DSECT                SUBCOM plist                              06760000
-         DC    CL8'SUBCOM'    CL8'SUBCOM' or CL8'NUCEXT'                06770000
-SUBPNAME DS    CL8            Name                                      06780000
-SUBRETN  DS    A              Pass back pointer for QUERY/ANCHOR        06790000
-SUBFUNC  DS    F              Function call type                        06800000
-         ORG   SUBRETN                                                  06810000
-SUBPSW   DS    0D             Starting PSW                              06820000
-SUBMASK  DS    X              System Mask                               06830000
-SUBKEY   DS    X              Storage Key                               06840000
-SUBSYSF  DS    X              Flags                                     06850000
-         DS    X                                                        06860000
-SUBADDR  DS    A              Entry point                               06870000
-SUBWKRD  DS    A              Work area (If any)                        06880000
-SUBXORG  DS    A              Origin (for NUCEXT)                       06890000
-SUBXLEN  DS    F              Length (for NUCEXT)                       06900000
-         ORG   SUBXORG                                                  06910000
-SUBNAME2 DS    CL8            Second SCBLOCK name for RENAME            06920000
-         SCBLOCK ,                                                      06930000
-         EJECT ,                                                        06940000
-         EPLIST ,                                                       06950000
-         EJECT                                                          06960000
-         NUCON                                                          06970000
-         EQUATES                                                        06980000
-         REGEQU ,                                                       06990000
-         END                                                            07000000
+**************************************************************          05380000
+* Notify the extension                                       *          05390000
+**************************************************************          05400000
+         MVC   NUCXNAME,SCBNAME   Copy name of routine                  05410000
+         MVC   NUCXTYPE,=CL8'ENDCMD'   call type                        05420000
+         ST    R4,NUCXPRMS                                              05430000
+         MVC   NUCXPRMS+4(8),FENCE                                      05440000
+         LA    R1,NUCXPL                                                05450000
+         ICM   R1,B'1000',=X'FE'  ENDCMD processing                     05460000
+         SVC   202                                                      05470000
+         DC    AL4(*+4)                                                 05480000
+*                                                                       05490000
+**************************************************************          05500000
+* Unmask to restore the original order                       *          05510000
+**************************************************************          05520000
+         BAL   R14,NUCXUNMS                                             05530000
+         B     NXEC020            On to the next                        05540000
+*                                                                       05550000
+NXEC040  DS    0H                                                       05560000
+         LA    R0,NUCXPLL                                               05570000
+         LR    R1,R7              Work area for CMSCALL                 05580000
+         DMSFRET DWORDS=(0),LOC=(1),TYPCALL=BALR                        05590000
+         SR    R15,R15                                                  05600000
+         L     R14,12(,R13)       Return address                        05610000
+         LM    R0,R12,20(R13)     Pass back R15                         05620000
+         BR    R14                Return to DMSITS                      05630000
+**************************************************************          05640000
+*                                                            *          05650000
+*        DMSSNXAB       ABEND NUCEXT processing              *          05660000
+*                                                            *          05670000
+* Call all Nucleus Extensions with the SERVICE attribute.    *          05680000
+* Because the chain could be rearranged during processing    *          05690000
+* we mark each block we look at during an iteration, and     *          05700000
+* start the search for the next one at the beginning of the  *          05710000
+* chain each time, ignoring the marked blocks.               *          05720000
+**************************************************************          05730000
+DMSSNXAB DS    0H                                                       05740000
+         ENTRY DMSSNXAB                                                 05750000
+         STM   R14,R12,12(R13)    Save entry regs                       05760000
+         LR    R12,R15                                                  05770000
+         LA    R15,DMSSNXAB-DMSSNX                                      05780000
+         SLR   R12,R15            Set base                              05790000
+*                                                                       05800000
+         LA    R0,NUCXPLL         Work area for CMSCALL                 05810000
+         DMSFREE DWORDS=(0),MSG=NO,TYPCALL=BALR,TYPE=NUCLEUS            05820000
+         LR    R7,R1                                                    05830000
+*                                                                       05840000
+         LA    R8,NUCXCBLK        Start at the top                      05850000
+NXAB010  DS    0H                                                       05860000
+         ICM   R8,B'1111',SCBFWPTR Get address of next block.           05870000
+         BZ    NXAB020            If at the end, then exit              05880000
+         NI    SCBSFLAG,X'FF'-SCBSFABN-SCBSHIDE                         05890000
+         B     NXAB010                                                  05900000
+NXAB020  DS    0H                                                       05910000
+         LA    R8,NUCXCBLK        Start at the top                      05920000
+NXAB030  DS    0H                                                       05930000
+         ICM   R8,B'1111',SCBFWPTR Get address of next block.           05940000
+         BZ    NXAB040            If at the end, then exit              05950000
+         TM    SCBSFLAG,SCBSFABN  Have we been here before?             05960000
+         BO    NXAB030            Yes, only try once.                   05970000
+         OI    SCBSFLAG,SCBSFABN  Set flag denoting this                05980000
+*                                 block processed.                      05990000
+         TM    SCBSFLAG,SCBSFSER  Branch if not "SERVICE"               06000000
+         BZ    NXAB030            routine.                              06010000
+*                                                                       06020000
+**************************************************************          06030000
+* Mask any other blocks with the same extension name         *          06040000
+**************************************************************          06050000
+         BAL   R14,NUCXMASK                                             06060000
+*                                                                       06070000
+**************************************************************          06080000
+* Notify the extension                                       *          06090000
+**************************************************************          06100000
+         MVC   NUCXNAME,SCBNAME   Copy name of routine                  06110000
+         MVC   NUCXTYPE,=CL8'PURGE'    call type                        06120000
+         MVC   NUCXPRMS,FENCE                                           06130000
+         LA    R1,NUCXPL                                                06140000
+         ICM   R1,B'1000',=X'FF'  ABEND processing                      06150000
+         SVC   202                                                      06160000
+         DC    AL4(*+4)                                                 06170000
+**************************************************************          06180000
+* Unmask to restore the original order                       *          06190000
+**************************************************************          06200000
+         BAL   R14,NUCXUNMS                                             06210000
+         B     NXAB020            On to the next                        06220000
+*                                                                       06230000
+NXAB040  DS    0H                                                       06240000
+**************************************************************          06250000
+* Now find any Extensions tht do NOT have the SYSTEM         *          06260000
+* setting. We remove them during ABEND processing.           *          06270000
+**************************************************************          06280000
+         LA    R8,NUCXCBLK        Start at the top                      06290000
+NXAB050  DS    0H                                                       06300000
+         ICM   R8,B'1111',SCBFWPTR Get address of next block.           06310000
+         BZ    NXAB070            If at the end, then exit              06320000
+         TM    SCBSFLAG,SCBSFABN  Have we seen this before              06330000
+         BZ    NXAB050            Keep looking if not                   06340000
+         NI    SCBSFLAG,X'FF'-SCBSFABN Reset to show processed          06350000
+         TM    SCBSFLAG,SCBSFSYS  Have SYSTEM attribute?                06360000
+         BO    NXAB050            Keep looking if so                    06370000
+**************************************************************          06380000
+* Fret the extension storage.                                *          06390000
+**************************************************************          06400000
+         L     R1,SCBXORG         The origin address again.             06410000
+         LA    R0,7               Round to next dword                   06420000
+         A     R0,SCBXLEN         Length in bytes.                      06430000
+         SRL   R0,3               Length in doublewords.                06440000
+         LTR   R0,R0              Skip if length is zero                06450000
+         BZ    NXAB060                                                  06460000
+         DMSFRET DWORDS=(0),LOC=(1),TYPCALL=BALR                        06470000
+NXAB060  DS    0H                                                       06480000
+*                                                                       06490000
+**************************************************************          06500000
+* Mask any other blocks with the same extension name         *          06510000
+**************************************************************          06520000
+         BAL   R14,NUCXMASK                                             06530000
+*                                                                       06540000
+**************************************************************          06550000
+* Call NUCEXT to remove the extension                        *          06560000
+**************************************************************          06570000
+         MVC   NUCXNAME,=CL8'NUCEXT'                                    06580000
+         XC    NUCXTYPE,SCBNAME     Extension name                      06590000
+         XC    NUCXPRMS(8),NUCXPRMS Delete extension                    06600000
+         MVC   NUCXPRMS+8(8),FENCE                                      06610000
+         LA    R1,NUCXPL                                                06620000
+         SVC   202                                                      06630000
+         DC    AL4(*+4)                                                 06640000
+**************************************************************          06650000
+* Unmask to restore the original order                       *          06660000
+**************************************************************          06670000
+         BAL   R14,NUCXUNMS                                             06680000
+         B     NXAB050            Keep looking                          06690000
+*                                                                       06700000
+NXAB070  DS    0H                                                       06710000
+         LA    R0,NUCXPLL                                               06720000
+         LR    R1,R7              Work area for CMSCALL                 06730000
+         DMSFRET DWORDS=(0),LOC=(1),TYPCALL=BALR                        06740000
+         SR    R15,R15                                                  06750000
+         L     R14,12(,R13)       Return address                        06760000
+         LM    R0,R12,20(R13)     Pass back R15                         06770000
+         BR    R14                Return to DMSITS                      06780000
+**************************************************************          06790000
+*                       M A S K                                         06800000
+* Reorder the SCBLOCK chain so the entry in R8 will be the   *          06810000
+* first one one on the chain and shadow any other extensions *          06820000
+* with the same name.                                        *          06830000
+**************************************************************          06840000
+NUCXMASK DS    0H                                                       06850000
+         MVC   NUCXNAME,SCBNAME   Hold the name here                    06860000
+         LR    R1,R8              Save address of SCBLOCK               06870000
+         LA    R15,NUCXCBLK       Prime loop                            06880000
+NUCXMA10 DS    0H                                                       06890000
+         ICM   R8,B'1111',SCBFWPTR-SCBLOCK(R15) Point to next           06900000
+         BZR   R14                Should NEVER happen !                 06910000
+         CR    R8,R1              Is this the SCBLOCK we are            06920000
+*                                 Looking for?                          06930000
+         BE    NUCXMA30           Yes, promote to head of chain         06940000
+         CLC   SCBNAME,NUCXNAME   Is this one in front of the           06950000
+*                                 one we are looking for ?              06960000
+         BNE   NUCXMA20           No, keep looking                      06970000
+         TM    SCBSFLAG,SCBSHIDE  Have we been here before ?            06980000
+         BO    NUCXMA20           Yes, keep looking                     06990000
+*                                                                       07000000
+**************************************************************          07010000
+*        Promote this SCBLOCK to head of chain.                         07020000
+**************************************************************          07030000
+*                                                                       07040000
+         MVC   SCBFWPTR-SCBLOCK(L'SCBFWPTR,R15),SCBFWPTR                07050000
+         MVC   SCBFWPTR,NUCXCBLK  Chain to                              07060000
+         ST    R8,NUCXCBLK                  head.                       07070000
+         OI    SCBSFLAG,SCBSHIDE  Indicate this SCBLOCK id              07080000
+*                                 hiding.                               07090000
+         B     NUCXMA10           Keep looking                          07100000
+NUCXMA20 DS    0H                                                       07110000
+         LR    R15,R8             Advance "PREVIOUS BLOCK"              07120000
+         B     NUCXMA10           Address, and iterate.                 07130000
+*                                                                       07140000
+**************************************************************          07150000
+*        Promote this SCBLOCK to head of chain.                         07160000
+**************************************************************          07170000
+NUCXMA30 DS    0H                                                       07180000
+         MVC   SCBFWPTR-SCBLOCK(L'SCBFWPTR,R15),SCBFWPTR                07190000
+         MVC   SCBFWPTR,NUCXCBLK  Chain to                              07200000
+         ST    R8,NUCXCBLK                  head.                       07210000
+         BR    R14                Return to caller                      07220000
+**************************************************************          07230000
+*                   U N M A S K                                         07240000
+* Reorder the chain so that SCBLOCKs with the same name as              07250000
+* ours are back in the same order they were when we started.            07260000
+* Look for hidden SCBLOCKS with our name.                               07270000
+**************************************************************          07280000
+NUCXUNMS DS    0H                                                       07290000
+         LA    R15,NUCXCBLK       Prime loop                            07300000
+NUCXUN10 DS    0H                                                       07310000
+         ICM   R8,B'1111',SCBFWPTR-SCBLOCK(R15) Point to next           07320000
+         BZR   R14                No more so we're done                 07330000
+         CLC   SCBNAME,NUCXNAME   Found match for our name?             07340000
+         BNE   NUCXUN20           No, keep looking                      07350000
+         TM    SCBSFLAG,SCBSHIDE  Is this one hiding?                   07360000
+         BZ    NUCXUN20           No, keep looking                      07370000
+*                                                                       07380000
+**************************************************************          07390000
+*        Promote this SCBLOCK to head of chain.                         07400000
+**************************************************************          07410000
+         MVC   SCBFWPTR-SCBLOCK(L'SCBFWPTR,R15),SCBFWPTR                07420000
+         MVC   SCBFWPTR,NUCXCBLK  Chain to                              07430000
+         ST    R8,NUCXCBLK           the beginning                      07440000
+         NI    SCBSFLAG,X'FF'-SCBSHIDE Unset mask bit                   07450000
+         B     NUCXUN10           Keep looking                          07460000
+NUCXUN20 DS    0H                                                       07470000
+         LR    R15,R8             Set lagging ptr                       07480000
+         B     NUCXUN10             and keep going                      07490000
+         DROP  R7,R8                                                    07500000
+***************************************************************         07510000
+*  Subroutine to allocate a new bunch of SCBLOCKs.                      07520000
+***************************************************************         07530000
+*                                                                       07540000
+*  Input:  R3 = return address.                                         07550000
+*                                                                       07560000
+*  Output:  R15 = 0, more SCBLOCKs are on the free list.                07570000
+*           R1  = address of new SCBLOCK (the same value                07580000
+*                 which is stored in nucxcbee).                         07590000
+*                                                                       07600000
+*           R15 = 25, no space available.                               07610000
+*                                                                       07620000
+*  THE FOLLOWING REGISTERS ARE ALSO MODIFIED BY THIS ROUTINE:           07630000
+*  R0, R8, R14                                                          07640000
+*                                                                       07650000
+GETCACHE DS    0H                                                       07660000
+*                                                                       07670000
+*  Define the number of additional SCBLOCKs to be allocated in          07680000
+*  a contiguous storage area.                                           07690000
+*  In this case, set it to be one page of SCBLOCKs.                     07700000
+*                                                                       07710000
+         L     R0,=A(2*4096)      Get 8K bytes in dwords                07720000
+         LR    R5,R0              Hold byte count                       07730000
+         SRL   R0,3               Size in doublewords                   07740000
+         DMSFREE DWORDS=(0),MSG=NO,TYPCALL=BALR,                       *07750000
+               TYPE=NUCLEUS,ERR=NOSPACE                                 07760000
+         LA    R4,0(,R1)          1st byte allocated                    07770000
+         LA    R5,0(R4,R5)        Point past last byte LL=BRANCH        07780000
+*                                                                       07790000
+*  R4->   +--------------------------------------------------+          07800000
+*                                                                       07810000
+*           Bytes before page boundary. If we happen to have            07820000
+*           allocated the area on a page boundary, the size             07830000
+*           of this area will be zero.                                  07840000
+*                                                                       07850000
+*  (A)->  +-------page boundary------------------------------+          07860000
+*                                                                       07870000
+*                                                                       07880000
+*         .                                                  .          07890000
+*         .                                                  .          07900000
+*         .                                                  .          07910000
+*                                                                       07920000
+*                                                                       07930000
+*  (B)    +-------page boundary------------------------------+          07940000
+*                                                                       07950000
+*            Bytes past page boundary                                   07960000
+*                                                                       07970000
+*         +--------------------------------------------------+          07980000
+*  R5->     Points past last allocated byte                             07990000
+*                                                                       08000000
+         LA    R0,4095(,R4)       Get address of next                   08010000
+         N     R0,=A(X'FFFFF000')       page boundary at (A)            08020000
+*                                                                       08030000
+         SR    R0,R4              Number bytes before bndry             08040000
+         BZ    GETPAGE2           Bif no bytes before bndry             08050000
+         LR    R1,R4              R0=Bytes to ret. R1=addr              08060000
+         AR    R4,R0              R2=Ptr to 1st page bndry              08070000
+         SRL   R0,3               Size in doublewords                   08080000
+*                                 Fret bytes before page                08090000
+         DMSFRET DWORDS=(0),LOC=(1),TYPCALL=BALR                        08100000
+GETPAGE2 DS    0H                                                       08110000
+         LR    R1,R5              Get address                           08120000
+         N     R1,=A(X'FFFFF000')    of ending page bndry (B)           08130000
+         LR    R0,R5              Past the last byte                    08140000
+         LR    R5,R1              Remember address past end             08150000
+*                                    of the last page                   08160000
+         SR    R0,R1              Length to fret at end                 08170000
+         BZ    GETPAGE3           Bif no bytes to fret                  08180000
+*                                 (Can't happen??)                      08190000
+*                                 R0=Bytes to ret. R1=addr              08200000
+         SRL   R0,3               Size in doublewords                   08210000
+*                                 Fret dwords after page bndry          08220000
+         DMSFRET DWORDS=(0),LOC=(1),TYPCALL=BALR                        08230000
+GETPAGE3 DS    0H                                                       08240000
+         LR    R0,R5              Address just past end                 08250000
+*                                    of the last page                   08260000
+         LR    R1,R4              Address of start of area              08270000
+         SR    R0,R1              Length of allocated area              08280000
+*                                                                       08290000
+         ST    R1,NUCXCBEE        Save pointer to page                  08300000
+         USING SCBLOCK,R1                                               08310000
+         L     R0,=A(4096/SCBLOCKB-1) Number of SCBLOCKs - 1            08320000
+NEEDMLP  DS    0H                                                       08330000
+         XC    SCBLOCK(SCBLOCKB),SCBLOCK  clear the new block.          08340000
+         LA    R15,SCBLOCKB(,R1)  Locate the next block.                08350000
+         ST    R15,SCBFWPTR       Store link.                           08360000
+         LR    R1,R15                                                   08370000
+         BCT   R0,NEEDMLP         Loop for all but last block.          08380000
+         XC    SCBLOCK(SCBLOCKB),SCBLOCK  clear the last block.         08390000
+         SLR   R15,R15            Set successful return code.           08400000
+         L     R1,NUCXCBEE        Return the address of first           08410000
+*                                 Scblock in the free list.             08420000
+         BR    R3                 Return to caller.                     08430000
+         DROP  R1                 SCBLOCK.                              08440000
+*                                                                       08450000
+NOSPACE  DS    0H                                                       08460000
+         LA    R15,25             RC=25                                 08470000
+         BR    R3                 Return to caller                      08480000
+         EJECT                                                          08490000
+***************************************************************         08500000
+*  Search a subcommand or nucleus extension chain.                      08510000
+***************************************************************         08520000
+*                                                                       08530000
+*  Inputs:  R0, R1  = Command name.                                     08540000
+*           R15     = Address of chain header --                        08550000
+*                     not changed by this subroutine.                   08560000
+*           R3      = Return address.                                   08570000
+*                                                                       08580000
+*  Outputs: CC      = 0 if found                                        08590000
+*           CC     <> 0 if not found                                    08600000
+*           R8 (R8) = address of chain element                          08610000
+*                                                                       08620000
+*  Uses R14, R8  as work registers.                                     08630000
+*                                                                       08640000
+*  Whenever a match is found, the block found is promoted               08650000
+*  to the head of the chain.                                            08660000
+*                                                                       08670000
+         USING SCBLOCK,R14                                              08680000
+SEARCHSB DS    0H                                                       08690000
+         LR    R14,R15            Preserve chain anchor                 08700000
+*                                 In r15 for caller.                    08710000
+         B     SEARCHL2                                                 08720000
+SEARCHLP DS    0H                                                       08730000
+         LR    R14,R8             Remember this element.                08740000
+SEARCHL2 DS    0H                                                       08750000
+         L     R8,SCBFWPTR        Get address of next element.          08760000
+         LTR   R8,R8              Branch if end of chain.               08770000
+         BZ    SEARCHNF                                                 08780000
+         DROP  R14                                                      08790000
+         USING SCBLOCK,R8                                               08800000
+         CL    R0,SCBNAME         Branch if not desired                 08810000
+         BNE   SEARCHLP           Element.                              08820000
+         CL    R1,SCBNAME+4       Also check second half of             08830000
+         BNE   SEARCHLP           Nope, keep searching                  08840000
+SEARCHGD DS    0H                                                       08850000
+         CR    R14,R15            Branch if first on chain.             08860000
+         BER   R3                 Return to caller                      08870000
+         MVC   SCBFWPTR-SCBLOCK(4,R14),SCBFWPTR  Remove found           08880000
+*                                   element from chain.                 08890000
+         MVC   SCBFWPTR,0(R15)    Link to prior first element.          08900000
+         ST    R8,0(R15)          Update chain anchor.                  08910000
+         CR    R15,R15            Set cc = 0.                           08920000
+         BR    R3                 Return to caller                      08930000
+         DROP  R8                                                       08940000
+SEARCHNF DS    0H                                                       08950000
+         LTR   R3,R3              Set cc <> 0.                          08960000
+         BR    R3                 Return                                08970000
+         EJECT                                                          08980000
+         LTORG ,                                                        08990000
+*                                                                       09000000
+         DS    0D                                                       09010000
+FENCE    DC    XL8'FFFFFFFFFFFFFFFF'                                    09020000
+*                                                                       09030000
+NUCXPL   DSECT                                                          09040000
+NUCXNAME DS    CL8                                                      09050000
+NUCXTYPE DS    CL8                                                      09060000
+NUCXPRMS DS    2D                                                       09070000
+NUCXPLL  EQU   (*-NUCXPL)/8       Size in dwords                        09080000
+*                                                                       09090000
+* Subcommand Plist for NUCEXT and SUBCOM calls                          09100000
+*                                                                       09110000
+SUBPLIST DSECT                SUBCOM plist                              09120000
+         DC    CL8'SUBCOM'    CL8'SUBCOM' or CL8'NUCEXT'                09130000
+SUBPNAME DS    CL8            Name                                      09140000
+SUBRETN  DS    A              Pass back pointer for QUERY/ANCHOR        09150000
+SUBFUNC  DS    F              Function call type                        09160000
+         ORG   SUBRETN                                                  09170000
+SUBPSW   DS    0D             Starting PSW                              09180000
+SUBMASK  DS    X              System Mask                               09190000
+SUBKEY   DS    X              Storage Key                               09200000
+SUBSYSF  DS    X              Flags                                     09210000
+SUBUSRF  DS    X              User Flags                                09220000
+SUBADDR  DS    A              Entry point                               09230000
+SUBWKRD  DS    A              Work area (If any)                        09240000
+SUBXORG  DS    A              Origin (for NUCEXT)                       09250000
+SUBXLEN  DS    F              Length (for NUCEXT)                       09260000
+         ORG   SUBXORG                                                  09270000
+SUBNAME2 DS    CL8            Second SCBLOCK name for RENAME            09280000
+         SCBLOCK ,                                                      09290000
+         EJECT ,                                                        09300000
+         EPLIST ,                                                       09310000
+         EJECT                                                          09320000
+         NUCON                                                          09330000
+         EQUATES                                                        09340000
+         REGEQU ,                                                       09350000
+         END                                                            09360000

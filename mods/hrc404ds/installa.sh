@@ -132,11 +132,18 @@ herccontrol "/&1 &2 SHVBLOCK MACRO"
 herccontrol "/" -w "^EDIT:"
 herccontrol "/file" -w "^Ready;"
 
-# Update the CMSLOAD EXEC file
+# Update the CMSLOAD EXEC file - 1 of 2
+herccontrol "/edit CMSLOAD EXEC E (nodisp" -w "^EDIT:"
+herccontrol "//DMSDBG"
+herccontrol "/input" -w "^INPUT:"
+herccontrol "/&1 &2 &3 DMSSNX"
+herccontrol "/" -w "^EDIT:"
+herccontrol "/file" -w "^Ready;"
+
+# Update the CMSLOAD EXEC file - 2 of 2
 herccontrol "/edit CMSLOAD EXEC E (nodisp" -w "^EDIT:"
 herccontrol "//DMSTIO"
 herccontrol "/input" -w "^INPUT:"
-herccontrol "/&1 &2 &3 DMSSNX"
 herccontrol "/&1 &2 &3 DMSCSF"
 herccontrol "/" -w "^EDIT:"
 herccontrol "/file" -w "^Ready;"

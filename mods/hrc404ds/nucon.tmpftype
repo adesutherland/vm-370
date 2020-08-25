@@ -1,6 +1,4 @@
 ./ I 444850 $ 445000 1000
-         ORG   NUCON+X'70C'                                    HRC404DS
-ATEMPLIN DC    &T.(TEMPLINE)  Command line translate buffer    HRC404DS
          ORG   NUCON+X'CF4'                                    HRC404DS
 NUCSCBLK DC    A(0)           SCBLOCK chain anchor             HRC404DS
          ORG   NUCON+X'E34'                                    HRC404DS

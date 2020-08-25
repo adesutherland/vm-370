@@ -149,24 +149,23 @@ CSFGO    DS    0H                                                       01390000
 *        Run as a CP command                                            01490000
 ***********************************************************             01500000
 CSFCP    DS    0H                                                       01510000
-         LA    R1,CMNDLINE         PROVIDE A(COMMAND LINE)              01520000
-         LR    R0,R6          AND COUNT FOR CP FUNCTION                 01530000
-         L     R15,=V(DMSCPF) Try as a CP command                       01540000
-         BALR  R14,R15                                                  01550000
-         CH    R15,=H'1'      Does RC say 'Unknown cmd'?                01560000
-         BNE   CSFDONE        Done here if not                          01570000
-         LNR   R15,R15        Make it a -1                              01580000
-*                                                                       01590000
-CSFDONE  DS    0H                                                       01600000
-         L     R14,12(,R13)                                             01610000
-         LM    R0,R12,20(R13)                                           01620000
-         BR    R14                                                      01630000
-*                                                                       01640000
-         LTORG ,                                                        01650000
-         EJECT ,                                                        01660000
-         NUCON ,                                                        01670000
-         IO ,                                                           01680000
-         EPLIST ,                                                       01690000
-         EQUATES ,                                                      01700000
-         REGEQU ,                                                       01710000
-         END                                                            01720000
+         LA    R1,CMNDLIST    Address of command line                   01520000
+         L     R15,=V(DMSCPF) Try as a CP command                       01530000
+         BALR  R14,R15                                                  01540000
+         CH    R15,=H'1'      Does RC say 'Unknown cmd'?                01550000
+         BNE   CSFDONE        Done here if not                          01560000
+         LNR   R15,R15        Make it a -1                              01570000
+*                                                                       01580000
+CSFDONE  DS    0H                                                       01590000
+         L     R14,12(,R13)                                             01600000
+         LM    R0,R12,20(R13)                                           01610000
+         BR    R14                                                      01620000
+*                                                                       01630000
+         LTORG ,                                                        01640000
+         EJECT ,                                                        01650000
+         NUCON ,                                                        01660000
+         IO ,                                                           01670000
+         EPLIST ,                                                       01680000
+         EQUATES ,                                                      01690000
+         REGEQU ,                                                       01700000
+         END                                                            01710000

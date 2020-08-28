@@ -16,11 +16,15 @@ It uses command line name resolution to find commands using
 the standard rules for implied EXEC and the system abbreviation
 table.
  
-Programs can add there own subcommand entry points and
+Programs can add their own subcommand entry points and
 REXX EXECs will call them with address 'SOMECMD'.
  
 The generalized SUBCOM facility will be used to implement
 an EXECCOMM subcommand in BREXX, and an EXECIO utility command.
+ 
+ 
+The syntax and usage description of these commands and
+macros are found in any set of VM manuals starting with VM/SP.
  
 New macro files:
  
@@ -87,8 +91,7 @@ DMSITS   HRC404DS  - Supports using 'DC AL4(1)' in place of 'DC AL4(*+4)'
                      X'04' - The call bypasses the search for a Nucleus Extension
                              No Eplist is present.
  
-DMSNUC   HRC404DS  - Adds TEMPLINE work area and forces re-assembly to pick up
-                     changes in the NUCON MACRO.
+DMSNUC   HRC404DS  - Forces re-assembly to pick up changes in the NUCON MACRO file.
  
 DMSSCN   HRC404DS  - Builds an EPLIST for an ASCANN call. This code was relocated
                      here from DMSINT for use by additional routines. This design
@@ -96,14 +99,14 @@ DMSSCN   HRC404DS  - Builds an EPLIST for an ASCANN call. This code was relocate
  
 New assembler source:
  
- &1 &2 DMSCSF   ASSEMBLE E1
- &1 &2 DMSCSF   HRC404DS E1
- &1 &2 DMSNXD   ASSEMBLE E1
- &1 &2 DMSNXD   HRC404DS E1
- &1 &2 DMSNXM   ASSEMBLE E1
- &1 &2 DMSNXM   HRC404DS E1
- &1 &2 DMSSNX   ASSEMBLE E1
- &1 &2 DMSSNX   HRC404DS E1
+DMSCSF   ASSEMBLE E1
+DMSCSF   HRC404DS E1
+DMSNXD   ASSEMBLE E1
+DMSNXD   HRC404DS E1
+DMSNXM   ASSEMBLE E1
+DMSNXM   HRC404DS E1
+DMSSNX   ASSEMBLE E1
+DMSSNX   HRC404DS E1
  
  
 Steps to apply:

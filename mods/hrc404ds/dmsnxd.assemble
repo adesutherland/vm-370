@@ -1,0 +1,94 @@
+     TITLE 'DMSNXD: Delete the specified Nucleus Extension(s)'          00010000
+**************************************************************          00020000
+* Simulate the NUCXDROP command in later CMS levels.         *          00030000
+*        NUCXDROP  * | name   name2   ...                    *          00040000
+**************************************************************          00050000
+DMSNXD   CSECT                                                          00060000
+         USING NUCON,0                                                  00070000
+         STM   R14,R12,12(R13)                                          00080000
+         LR    R12,R15                                                  00090000
+         USING DMSNXD,R12                                               00100000
+*                                                                       00110000
+         LA    R11,8(,R1)         Point to first name in Plist          00120000
+         CLI   0(R11),X'FF'       At the end?                           00130000
+         BE    DONE               Yes, return to caller                 00140000
+         CLI   0(R11),C'*'        NUCXDROP all extensions?              00150000
+         BNE   DROPLOOP           Yes, return to caller                 00160000
+*                                                                       00170000
+* Drop all eligable Nucleus extensions                                  00180000
+*                                                                       00190000
+         NUCEXT ANCHOR            Get 1st extension in system           00200000
+         LR    R6,R1                                                    00210000
+         USING SCBLOCK,R2                                               00220000
+DROPALL  DS    0H                                                       00230000
+         LTR   R2,R6              Extension to delete                   00240000
+         BZ    DONE                                                     00250000
+         L     R6,SCBFWPTR        Get its next pointer                  00260000
+         TM    SCBSFLAG,SCBSPERM  Is it Exempt from NUCXDROP *          00270000
+         BO    DROPALL            Skip the DROP if so                   00280000
+         BAL   R5,DROPONE         DROP it                               00290000
+         B     DROPALL            On to the next                        00300000
+*                                                                       00310000
+* Drop the next specified extension in a list of names                  00320000
+*                                                                       00330000
+DROPLOOP DS    0H                                                       00340000
+         NUCEXT QUERY,NAME=(R11)  Does it exist?                        00350000
+         BNZ   NOTFOUND           Skip if not                           00360000
+         LR    R2,R1              SCBLOCK address                       00370000
+         CLC   SCBNAME,0(R11)     Check for correct name                00380000
+         BNE   ABEND1             Something failed                      00390000
+*                                                                       00400000
+         BAL   R5,DROPONE                                               00410000
+         LA    R11,8(,R11)        Point to next name in Plist           00420000
+         CLI   0(R11),X'FF'       At the end?                           00430000
+         BNE   DROPLOOP           Process next name                     00440000
+         B     DONE               Return to caller                      00450000
+*                                                                       00460000
+* Drop the specific extension                                           00470000
+*                                                                       00480000
+DROPONE  DS    0H                                                       00490000
+         TM    SCBSFLAG,SCBSFSER  SERVICE flag set?                     00500000
+         BZ    SKIPSERV           SKIP SERVICE CALL IF NOT              00510000
+         LA    R1,SERVCALL                                              00520000
+         MVC   0(8,R1),SCBNAME    Build service call                    00530000
+         SVC   202                Tell the Extension he's gone          00540000
+         DC    AL4(*+4)                                                 00550000
+SKIPSERV DS    0H                                                       00560000
+         L     R3,SCBXORG         Get code address                      00570000
+         L     R4,SCBXLEN                  length                       00580000
+*                                                                       00590000
+         NUCEXT CLR,NAME=SCBNAME  Remove the SCBLOCK                    00600000
+*                                                                       00610000
+         LTR   R4,R4              Is there code to release?             00620000
+         BZ    SKIPFRET           Skip next if not                      00630000
+         LA    R0,7(,R4)                                                00640000
+         SRL   R0,3               Doublewords                           00650000
+         LR    R1,R3                                                    00660000
+         DMSFRET DWORDS=(0),LOC=(1) Release code area                   00670000
+SKIPFRET DS    0H                                                       00680000
+         BR    R5                 Return to caller above                00690000
+*                                                                       00700000
+NOTFOUND DS    0H                                                       00710000
+         LINEDIT TEXT='Extension ........ not found',                  *00720000
+               SUB=(CHARA,((R11),8))                                    00730000
+         LA    R15,28             Not found RC                          00740000
+         B     GOBACK             Done                                  00750000
+*                                                                       00760000
+DONE     DS    0H                                                       00770000
+         SR    R15,R15                                                  00780000
+GOBACK   DS    0H                                                       00790000
+         L     R14,12(,R13)                                             00800000
+         LM    R0,R12,20(R13)                                           00810000
+         BR    R14                                                      00820000
+*                                                                       00830000
+SERVCALL DS    0D                                                       00840000
+         DC    CL8'name'                                                00850000
+         DC    CL8'RESET'                                               00860000
+         DC    8X'FF'                                                   00870000
+*                                                                       00880000
+ABEND1   ABEND 1                                                        00890000
+         EJECT ,                                                        00900000
+         REGEQU ,                                                       00910000
+         SCBLOCK ,                                                      00920000
+         NUCON ,                                                        00930000
+         END                                                            00940000

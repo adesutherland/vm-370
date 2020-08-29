@@ -1,0 +1,719 @@
+         MACRO                                                          00010000
+&LABEL   SUBCOM &TYPE,            SET, CLR, ANCHOR, QUERY, RENAME      *00020000
+               &NAME=,            Name of the Nucleus Extension        *00030000
+               &ENTRY=,           Entry Point of the Nucleus Extension *00040000
+               &INTTYPE=,         NONE, ALL                            *00050000
+               &KEY=,             USER, NUCLEUS                        *00060000
+               &NEW=,             Newname for Rename call              *00070000
+               &ERROR=*,          Error Address                        *00080000
+               &SYSTEM=,          Survives ABEND processing            *00090000
+               &SERVICE=,         Receive control during ABEND         *00100000
+               &ENDCMD=,          Receive control during command end   *00110000
+               &ORIGIN=,          Program area and size                *00120000
+               &UWORD=,           User Word passed to Extension        *00130000
+               &UFLAGS=,          User Flags passed to Extension       *00140000
+               &PERM=,            Respond to 'NUCXDROP *'              *00150000
+               &MF=I                                                    00160000
+         LCLB  &SET,&CLR,&ANCH,&QRY,&RENAME,&MFI,&MFL,&MFLC,&MFE        00170000
+         LCLB  &SYSBIT,&SERVBIT,&ENDCBIT,&PERMBIT                       00180000
+         LCLC  &MACNM,&REG,&ERRPRM,&DEBUG                               00190000
+&MACNM   SETC  'SUBCOM'           Either NUCEXT or SUBCOM               00200000
+.*************************************************************          00210000
+.*                                                           *          00220000
+.* The NUCEXT and SUBCOM macros have the same logic, for the *          00230000
+.* most part. To make changes easier, the same source file is*          00240000
+.* used for both programs. When changes are made, save the   *          00250000
+.* file. Next, make only two changes and save the other file.*          00260000
+.* 1. Change the macro name on file line 2.                  *          00270000
+.* 2. Change the value of the &MACNM variable above.         *          00280000
+.*                                                           *          00290000
+.*************************************************************          00300000
+.*                                                                      00310000
+.************************************* Validate call type               00320000
+&SET     SETB  ('&TYPE' EQ 'SET')                                       00330000
+&CLR     SETB  ('&TYPE' EQ 'CLR')                                       00340000
+&ANCH    SETB  ('&TYPE' EQ 'ANCHOR')                                    00350000
+&QRY     SETB  ('&TYPE' EQ 'QUERY')                                     00360000
+.* RENAME is defined for NUCEXT, but not for SUBCOM                     00370000
+&RENAME  SETB  ('&TYPE' EQ 'RENAME' AND '&MACNM' EQ 'NUCEXT')           00380000
+.*                                                                      00390000
+         AIF   (NOT &SET AND NOT &CLR AND NOT &QRY AND NOT &ANCH AND   *00400000
+               NOT &RENAME).ERR1                                        00410000
+.*                                                                      00420000
+.************************************* Check MF= operands               00430000
+&MFI     SETB  ('&MF' EQ 'I')                                           00440000
+&MFL     SETB  ('&MF' EQ 'L')                                           00450000
+&MFE     SETB  ('&MF(1)' EQ 'E' AND N'&MF GT 1)                         00460000
+&MFLC    SETB  ('&MF(1)' EQ 'L' AND N'&MF GT 1)                         00470000
+.*                                                                      00480000
+         AIF   (NOT &MFI AND NOT &MFL AND NOT &MFLC AND NOT &MFE).ERR2  00490000
+.*                                                                      00500000
+.************************************* Report conflicting               00510000
+.*                                            operands                  00520000
+.*                                                                      00530000
+.* Many operands are only used by NUCEXT SET or SUBCOM SET              00540000
+.*                                                                      00550000
+         AIF   (&SET).PRMCHK1                                           00560000
+&ERRPRM  SETC  'ENTRY='                                                 00570000
+         AIF   (T'&ENTRY NE 'O').ERR3                                   00580000
+&ERRPRM  SETC  'UWORD='                                                 00590000
+         AIF   (T'&UWORD NE 'O').ERR3                                   00600000
+&ERRPRM  SETC  'INTTYPE='                                               00610000
+         AIF   (T'&INTTYPE NE 'O').ERR3                                 00620000
+&ERRPRM  SETC  'KEY='                                                   00630000
+         AIF   (T'&KEY NE 'O').ERR3                                     00640000
+&ERRPRM  SETC  'ORIGIN='                                                00650000
+         AIF   (T'&ORIGIN NE 'O').ERR3                                  00660000
+&ERRPRM  SETC  'SYSTEM='                                                00670000
+         AIF   (T'&SYSTEM NE 'O').ERR3                                  00680000
+&ERRPRM  SETC  'SERVICE='                                               00690000
+         AIF   (T'&SERVICE NE 'O').ERR3                                 00700000
+&ERRPRM  SETC  'ENDCMD='                                                00710000
+         AIF   (T'&ENDCMD NE 'O').ERR3                                  00720000
+.PRMCHK1 ANOP                                                           00730000
+.*                                                                      00740000
+.* NEW operand is only used by NUCEXT RENAME                            00750000
+.*                                                                      00760000
+         AIF   (&RENAME).PRMCHK2                                        00770000
+&ERRPRM  SETC  'NEW='                                                   00780000
+         AIF   (T'&NEW NE 'O').ERR3                                     00790000
+.PRMCHK2 ANOP                                                           00800000
+.*                                                                      00810000
+.* NAME operand is not used by ANCHOR                                   00820000
+.* NAME operand is required by all other types                          00830000
+.*                                                                      00840000
+         AIF   (&ANCH).PRMCHK3                                          00850000
+&ERRPRM  SETC  'NAME='                                                  00860000
+         AIF   (T'&NAME EQ 'O').ERR4                                    00870000
+         AGO   .PRMCHK4                                                 00880000
+.PRMCHK3 ANOP                                                           00890000
+         AIF   (T'&NAME NE 'O').ERR3                                    00900000
+.PRMCHK4 ANOP                                                           00910000
+.*                                                                      00920000
+.************************************* Branch base on type              00930000
+         AIF   (&MFI).MFSTD       Go process standard form              00940000
+         AIF   (&MFL).MFL         Go process list form                  00950000
+         AIF   (&MFLC).MFLC       Go process complex list form          00960000
+         AIF   (&MFE).MFE         Go process execute form               00970000
+.*                                                                      00980000
+.ERR1    ANOP                                                           00990000
+         MNOTE 8,'Incorrect function &TYPE'                             01000000
+         MEXIT                                                          01010000
+.ERR2    ANOP                                                           01020000
+         MNOTE 8,'Incorrect MF= operand &MF'                            01030000
+         MEXIT                                                          01040000
+.ERR3    ANOP                                                           01050000
+         MNOTE 8,'&ERRPRM is not used with type &TYPE'                  01060000
+         MEXIT                                                          01070000
+.ERR4    ANOP                                                           01080000
+         MNOTE 8,'&ERRPRM is required with type &TYPE'                  01090000
+         MEXIT                                                          01100000
+.*-----------------------------------------------------------*          01110000
+.*                                                           *          01120000
+.* Generate standard Form macro expansion                    *          01130000
+.*                                                           *          01140000
+.*-----------------------------------------------------------*          01150000
+.MFSTD   ANOP                                                           01160000
+         CNOP  0,4                                                      01170000
+         AIF   (T'&LABEL EQ 'O').NOLBL1                                 01180000
+&LABEL   DS    0H                                                       01190000
+.NOLBL1  ANOP                                                           01200000
+         BAL   1,DMS&SYSNDX.A                                           01210000
+         DC    CL8'&MACNM'                                              01220000
+         DC    CL8' '             Name                                  01230000
+         AIF   (NOT &SET).NOTSET1                                       01240000
+         DC    X'00'              System Mask                           01250000
+         DC    X'00'              Storage Key                           01260000
+         DC    X'00'              Flags                                 01270000
+         DC    X'00'                                                    01280000
+         DC    A(0)               Entry address                         01290000
+         DC    A(0)               User word                             01300000
+         DC    A(0)               Code address                          01310000
+         DC    F'0'               Code size                             01320000
+         AGO   .SETLAB                                                  01330000
+.NOTSET1 ANOP                                                           01340000
+         AIF   (NOT &CLR).NOTCLR1                                       01350000
+         DC    F'0'                                                     01360000
+         DC    F'0'                                                     01370000
+         AGO   .SETLAB                                                  01380000
+.NOTCLR1 ANOP                                                           01390000
+         AIF   (NOT &QRY).NOTQRY1                                       01400000
+         DC    F'0'               SCBLOCK returned here                 01410000
+         DC    F'-1'                                                    01420000
+         AGO   .SETLAB                                                  01430000
+.NOTQRY1 ANOP                                                           01440000
+         AIF   (NOT &RENAME).NOTREN1                                    01450000
+         DC    F'0'                                                     01460000
+         DC    F'2'               Rename                                01470000
+         DC    CL8' '             New name                              01480000
+         AGO   .SETLAB                                                  01490000
+.NOTREN1 ANOP                                                           01500000
+         AIF   (NOT &ANCH).NOTANC1                                      01510000
+         DC    A(0)               SCBLOCK anchor returned here          01520000
+         DC    F'1'                                                     01530000
+         AGO   .SETLAB                                                  01540000
+.NOTANC1 ANOP                                                           01550000
+.*                                                                      01560000
+.SETLAB  ANOP                                                           01570000
+DMS&SYSNDX.A DS  0H                                                     01580000
+&REG     SETC  '1'                PL address is in R1                   01590000
+         AGO   .FILLPL            Join below to fill in the             01600000
+.*                                plist we generated                    01610000
+.*                                                                      01620000
+.*-----------------------------------------------------------*          01630000
+.*                                                           *          01640000
+.* Generate Execute Form macro expansion    MF=(E,xxx)       *          01650000
+.*                                                           *          01660000
+.*-----------------------------------------------------------*          01670000
+.MFE     ANOP                                                           01680000
+         AIF   (T'&LABEL EQ 'O').NOLBL2                                 01690000
+&LABEL   DS    0H                                                       01700000
+.NOLBL2  ANOP                                                           01710000
+         AIF   ('&MF(2)'(1,1) EQ '(').MFEREG                            01720000
+         LA    1,&MF(2)           Point to list form                    01730000
+         AGO   .MFESETR                                                 01740000
+.MFEREG  ANOP                                                           01750000
+         AIF   ('&MF(2)' EQ '(1)').MFESETR                              01760000
+         LR    1,&MF(2)           Point to list form                    01770000
+.MFESETR ANOP                                                           01780000
+&REG     SETC  '1'                PL address is in R1                   01790000
+         AGO   .FILLPL            Join below to fill in the             01800000
+.*                                plist we generated                    01810000
+.*                                                                      01820000
+.*-----------------------------------------------------------*          01830000
+.*                                                           *          01840000
+.* Generate Complex List form macro expansion  MF=(L,addr)   *          01850000
+.*                                        and  MF=(L,(reg))  *          01860000
+.*-----------------------------------------------------------*          01870000
+.MFLC    ANOP                                                           01880000
+         AIF   (T'&LABEL EQ 'O').NOLBL3                                 01890000
+&LABEL   DS    0A                                                       01900000
+.NOLBL3  ANOP                                                           01910000
+.*                                                                      01920000
+.*       For MF=(L,addr) processing use R1 to address the               01930000
+.*       build area, otherwise use the register specified               01940000
+.*       for the MF=(L,(reg)) form.                                     01950000
+.*                                                                      01960000
+         AIF   ('&MF(2)'(1,1) EQ '(').MFLCR                             01970000
+.*                                                                      01980000
+.*       Generate expansion for MF=(L,addr)                             01990000
+         LA    1,&MF(2)           Generate MF=L here                    02000000
+&REG     SETC  '1'                                                      02010000
+         AGO   .MFLGO                                                   02020000
+.MFLCR   ANOP                                                           02030000
+&REG     SETC  '&MF(2)'                                                 02040000
+         AIF   ('&REG' NE '(1)').MFLGO                                  02050000
+&REG     SETC  '1'                                                      02060000
+.MFLGO   ANOP                                                           02070000
+         MVC   0(8,&REG),=CL8'&MACNM'                                   02080000
+         AGO   .FILLPL            Join below to fill in the             02090000
+.*                                plist we generated                    02100000
+.*                                                                      02110000
+.*-----------------------------------------------------------           02120000
+.* Code below is common between a standard macro form,                  02130000
+.* an execute form, and a complex execute form.                         02140000
+.* In the case of a standard form expansion, we have built              02150000
+.* an area that is filled in by this code. In the case of               02160000
+.* execute form and complex list form, we are building the              02170000
+.* plist in storage from the specified arguments.                       02180000
+.*-----------------------------------------------------------           02190000
+.FILLPL  ANOP                                                           02200000
+.************************************* Process NAME=                    02210000
+         AIF   (&ANCH).NAMEOK     No name for ANCHOR                    02220000
+         AIF   ('&NAME'(1,1) EQ '''').NAMQUOT                           02230000
+         AIF   ('&NAME'(1,1) EQ '(').NAMREG                             02240000
+         MVC   8(8,&REG),&NAME    Set name                              02250000
+         AGO   .NAMEOK                                                  02260000
+.NAMQUOT ANOP                                                           02270000
+         MVC   8(8,&REG),=CL8&NAME Set name                             02280000
+         AGO   .NAMEOK                                                  02290000
+.NAMREG  ANOP                                                           02300000
+         MVC   8(8,&REG),0&NAME   Set name                              02310000
+.NAMEOK  ANOP                                                           02320000
+.*                                                                      02330000
+.*-----------------------------------------------------------           02340000
+.* SET operand processing                                               02350000
+.*-----------------------------------------------------------           02360000
+         AIF   (NOT &SET).NOTSET2                                       02370000
+.************************************* Process ENTRY=                   02380000
+         AIF   (T'&ENTRY EQ 'O').ENTRYOK                                02390000
+         AIF   ('&ENTRY'(1,1) EQ '(').ENTREG                            02400000
+         LA    15,&ENTRY          Set entry point                       02410000
+         ST    15,20(,&REG)         in plist                            02420000
+         AGO   .ENTRYOK                                                 02430000
+         MEXIT                                                          02440000
+.ENTREG  ANOP                                                           02450000
+         ST    &ENTRY,20(,&REG)   Set entry point                       02460000
+.ENTRYOK ANOP                                                           02470000
+.************************************* PROCESS UWORD=                   02480000
+         AIF   (T'&UWORD EQ 'O').UWRDOK                                 02490000
+         AIF   ('&UWORD'(1,1) EQ '(').UWRDREG                           02500000
+         MVC   24(4,&REG),&UWORD  Set User Word                         02510000
+         AGO   .UWRDOK                                                  02520000
+.UWRDREG ANOP                                                           02530000
+         ST    &UWORD,24(,&REG)   Set User word                         02540000
+.UWRDOK  ANOP                                                           02550000
+.************************************* Process INTTYPE=                 02560000
+         AIF   (T'&INTTYPE EQ 'O').INTNONE Default=None                 02570000
+         AIF   ('&INTTYPE' EQ 'NONE').INTNONE                           02580000
+         AIF   ('&INTTYPE' EQ 'ALL').INTALL                             02590000
+         MNOTE 8,'INTTYPE must be ALL or NONE'                          02600000
+         MEXIT                                                          02610000
+.INTNONE ANOP                                                           02620000
+         MVI   16(&REG),X'00'     Set INTTYPE NONE                      02630000
+         AGO   .INTOK                                                   02640000
+.INTALL  ANOP                                                           02650000
+         MVI   16(&REG),X'FF'     Set INTTYPE ALL                       02660000
+.INTOK   ANOP                                                           02670000
+.************************************* PROCESS ORIGIN=                  02680000
+         AIF   (T'&ORIGIN EQ 'O').ORIGOK                                02690000
+         AIF   (N'&ORIGIN NE 2).ORIGNOK                                 02700000
+.*                                                                      02710000
+         AIF   ('&ORIGIN(1)'(1,1) EQ '(').ORIGARG                       02720000
+         LA    15,&ORIGIN(1)      Set Origin address                    02730000
+         ST    15,28(4,&REG)                                            02740000
+         AGO   .ORIGAOK                                                 02750000
+.ORIGARG ANOP                                                           02760000
+         ST    (&ORIGIN(1)),28(1) Set Origin address                    02770000
+.ORIGAOK ANOP                                                           02780000
+.*                                                                      02790000
+         AIF   ('&ORIGIN(2)'(1,1) EQ '(').ORIGLRG                       02800000
+         LA    15,&ORIGIN(2)      Set Origin length                     02810000
+         ST    15,32(4,&REG)                                            02820000
+         AGO   .ORIGOK                                                  02830000
+.ORIGLRG ANOP                                                           02840000
+         ST    (&ORIGIN(2)),32(&REG) Set Origin length                  02850000
+         AGO   .ORIGOK                                                  02860000
+.ORIGNOK ANOP                                                           02870000
+         MNOTE 8,'Correct form is ORIGIN(address,length)'               02880000
+         MEXIT                                                          02890000
+.ORIGOK  ANOP                                                           02900000
+.************************************* Process KEY=                     02910000
+         AIF   (T'&KEY EQ 'O').KEYUSER  default=USER                    02920000
+         AIF   ('&KEY' EQ 'USER').KEYUSER                               02930000
+         AIF   ('&KEY' EQ 'NUCLEUS').KEYNUC                             02940000
+         AIF   ('&KEY'(1,1) EQ '(').KEYREG                              02950000
+         MNOTE 8,'KEY must be NUCLEUS or USER'                          02960000
+         MEXIT                                                          02970000
+.KEYREG  ANOP                                                           02980000
+         AIF   (N'&KEY GT 1).KEYREG2                                    02990000
+         MVI   17(&REG),X'E4'     Set USER protect key                  03000000
+         LTR   &KEY(1),&KEY(1)                                          03010000
+         BZ    *+8                                                      03020000
+         MVI   17(&REG),X'04'     Set NUCLEUS protect key               03030000
+         AGO   .KEYOK                                                   03040000
+.KEYREG2 ANOP                                                           03050000
+         AIF   (N'&KEY GT 2).KEYREG3                                    03060000
+         MVI   17(&REG),X'E4'     Set USER protect key                  03070000
+         TM    &KEY(1),&KEY(2)                                          03080000
+         BZ    *+8                                                      03090000
+         MVI   17(&REG),X'04'     Set NUCLEUS protect key               03100000
+         AGO   .KEYOK                                                   03110000
+.KEYREG3 ANOP                                                           03120000
+         MNOTE 8,'KEY parameter incorrect specification'                03130000
+         MEXIT                                                          03140000
+.KEYUSER ANOP                                                           03150000
+         MVI   17(&REG),X'E4'     Set USER protect key                  03160000
+         AGO   .KEYOK                                                   03170000
+.KEYNUC  ANOP                                                           03180000
+         MVI   17(&REG),X'04'     Set NUCLEUS protect key               03190000
+.KEYOK   ANOP                                                           03200000
+.************************************* Fill in the flags                03210000
+&SYSBIT  SETB  0                  Default is SYSTEM=NO                  03220000
+&SERVBIT SETB  0                  Default is SERVICE=NO                 03230000
+&ENDCBIT SETB  0                  Default is ENDCMD=NO                  03240000
+         AIF   (T'&SYSTEM EQ 'O').SYSSKIP                               03250000
+         AIF   ('&SYSTEM' EQ 'YES' OR '&SYSTEM' EQ 'NO').SYSTOK         03260000
+         AIF   ('&SYSTEM'(1,1) EQ '(').SYSREG                           03270000
+         MNOTE 8,'SYSTEM must be ''YES'' or ''NO'''                     03280000
+         MEXIT                                                          03290000
+.SYSREG  ANOP                                                           03300000
+         AIF   (N'&SYSTEM GT 1).SYSREG2                                 03310000
+         NI    18(&REG),X'FF'-B'10000000'   Set SYSTEM flag             03320000
+         LTR   &SYSTEM(1),&SYSTEM(1)                                    03330000
+         BZ    *+8                                                      03340000
+         OI    18(&REG),B'10000000'                                     03350000
+         AGO   .SYSSKIP                                                 03360000
+.SYSREG2 ANOP                                                           03370000
+         AIF   (N'&SYSTEM GT 2).SYSREG3                                 03380000
+         NI    18(&REG),X'FF'-B'10000000'   Set SYSTEM flag             03390000
+         TM    &SYSTEM(1),&SYSTEM(2)                                    03400000
+         BZ    *+8                                                      03410000
+         OI    18(&REG),B'10000000'                                     03420000
+         AGO   .SYSSKIP                                                 03430000
+.SYSREG3 ANOP                                                           03440000
+         MNOTE 8,'SYSTEM parameter incorrect specification'             03450000
+         MEXIT                                                          03460000
+.SYSTOK  ANOP                                                           03470000
+&SYSBIT  SETB  ('&SYSTEM' EQ 'YES')                                     03480000
+         NI    18(&REG),X'FF'-B'10000000'   Set SYSTEM flag             03490000
+         OI    18(&REG),B'&SYSBIT.0000000'                              03500000
+.SYSSKIP ANOP                                                           03510000
+.*                                                                      03520000
+         AIF   (T'&SERVICE  EQ 'O' OR '&MACNM' NE 'NUCEXT').SRVSKIP     03530000
+         AIF   ('&SERVICE' EQ 'YES' OR '&SERVICE' EQ 'NO').SERVOK       03540000
+         AIF   ('&SERVICE'(1,1) EQ '(').SERVREG                         03550000
+         MNOTE 8,'SERVICE must be ''YES'' or ''NO'''                    03560000
+         MEXIT                                                          03570000
+.SERVREG ANOP                                                           03580000
+         AIF   (N'&SERVICE GT 1).SERVRG2                                03590000
+         NI    18(&REG),X'FF'-B'01000000'   Set SERVICE flag            03600000
+         LTR   &SERVICE(1),&SERVICE(1)                                  03610000
+         BZ    *+8                                                      03620000
+         OI    18(&REG),B'01000000'                                     03630000
+         AGO   .SRVSKIP                                                 03640000
+.SERVRG2 ANOP                                                           03650000
+         AIF   (N'&SERVICE GT 2).SERVRG3                                03660000
+         NI    18(&REG),X'FF'-B'01000000'   Set SERVICE flag            03670000
+         TM    &SERVICE(1),&SERVICE(2)                                  03680000
+         BZ    *+8                                                      03690000
+         OI    18(&REG),B'01000000'                                     03700000
+         AGO   .SRVSKIP                                                 03710000
+.SERVRG3 ANOP                                                           03720000
+         MNOTE 8,'SERVICE parameter incorrect specification'            03730000
+         MEXIT                                                          03740000
+.SERVOK  ANOP                                                           03750000
+&SERVBIT SETB  ('&SERVICE' EQ 'YES')                                    03760000
+         NI    18(&REG),X'FF'-B'01000000'   Set SERVICE flag            03770000
+         OI    18(&REG),B'0&SERVBIT.000000'                             03780000
+.SRVSKIP ANOP                                                           03790000
+.*                                                                      03800000
+         AIF   (T'&ENDCMD  EQ 'O' OR '&MACNM' NE 'NUCEXT').ENDSKIP      03810000
+         AIF   ('&ENDCMD' EQ 'YES' OR '&ENDCMD' EQ 'NO').ENDCOK         03820000
+         AIF   ('&ENDCMD'(1,1) EQ '(').ENDREG                           03830000
+         MNOTE 8,'ENDCMD must be ''YES'' or ''NO'''                     03840000
+         MEXIT                                                          03850000
+.ENDREG  ANOP                                                           03860000
+         AIF   (N'&ENDCMD GT 1).ENDREG2                                 03870000
+         NI    18(&REG),X'FF'-B'00010000'   Set ENDCMD flag             03880000
+         LTR   &ENDCMD(1),&ENDCMD(1)                                    03890000
+         BZ    *+8                                                      03900000
+         OI    18(&REG),B'00010000'                                     03910000
+         AGO   .ENDSKIP                                                 03920000
+.ENDREG2 ANOP                                                           03930000
+         AIF   (N'&ENDCMD GT 2).ENDREG3                                 03940000
+         NI    18(&REG),X'FF'-B'00010000'   Set ENDCMD flag             03950000
+         TM    &ENDCMD(1),&ENDCMD(2)                                    03960000
+         BZ    *+8                                                      03970000
+         OI    18(&REG),B'00010000'                                     03980000
+         AGO   .ENDSKIP                                                 03990000
+.ENDREG3 ANOP                                                           04000000
+         MNOTE 8,'ENDCMD parameter incorrect specification'             04010000
+         MEXIT                                                          04020000
+.ENDCOK  ANOP                                                           04030000
+&ENDCBIT SETB  ('&ENDCMD' EQ 'YES')                                     04040000
+         NI    18(&REG),X'FF'-B'00010000'   Set ENDCMD flag             04050000
+         OI    18(&REG),B'000&ENDCBIT.0000'                             04060000
+.ENDSKIP ANOP                                                           04070000
+.************************************* Process UFLAGS=                  04080000
+         AIF   (T'&UFLAGS  EQ 'O').UFLGOK                               04090000
+         AIF   ('&UFLAGS'(1,1) EQ '''').UFLQUOT                         04100000
+         AIF   ('&UFLAGS'(1,1) EQ '(').UFLREG                           04110000
+         MVC   19(1,&REG),&UFLAGS           Set UFLAGS                  04120000
+         AGO   .UFLGOK                                                  04130000
+.UFLQUOT ANOP                                                           04140000
+         MVI   19(&REG),=X&UFLAGS           Set UFLAGS                  04150000
+         AGO   .UFLGOK                                                  04160000
+.UFLREG  ANOP                                                           04170000
+         STC   &UFLAGS(1),19(&REG)          Set UFLAGS                  04180000
+.UFLGOK  ANOP                                                           04190000
+.************************************* Process PERM=                    04200000
+&PERMBIT SETB  0                  Default is PERM=NO                    04210000
+         AIF   (T'&PERM  EQ 'O' OR '&MACNM' NE 'NUCEXT').PERMOK         04220000
+         AIF   ('&PERM' EQ 'YES' OR '&PERM' EQ 'NO').PERMOK             04230000
+         AIF   ('&PERM'(1,1) EQ '(').PERMREG                            04240000
+         MNOTE 8,'PERM must be ''YES'' or ''NO'''                       04250000
+         MEXIT                                                          04260000
+.PERMREG ANOP                                                           04270000
+         AIF   (N'&PERM GT 1).PERMRG2                                   04280000
+         NI    18(&REG),X'FF'-B'00001000'                               04290000
+         LTR   &PERM(1),&PERM(1)            Set PERM flag               04300000
+         BZ    *+8                                                      04310000
+         OI    18(&REG),B'00001000'                                     04320000
+         AGO   .PERMSKP                                                 04330000
+.PERMRG2 ANOP                                                           04340000
+         AIF   (N'&PERM GT 2).PERMRG3                                   04350000
+         NI    18(&REG),X'FF'-B'00001000'   Set PERM flag               04360000
+         TM    &PERM(1),&PERM(2)                                        04370000
+         BZ    *+8                                                      04380000
+         OI    18(&REG),B'00001000'                                     04390000
+         AGO   .PERMSKP                                                 04400000
+.PERMRG3 ANOP                                                           04410000
+         MNOTE 8,'PERM parameter incorrect specification'               04420000
+         MEXIT                                                          04430000
+.PERMOK  ANOP                                                           04440000
+&PERMBIT SETB  ('&PERM' EQ 'YES')                                       04450000
+         NI    18(&REG),X'FF'-B'00001000'   Set PERM flag               04460000
+         OI    18(&REG),B'0000&PERMBIT.000'                             04470000
+.PERMSKP ANOP                                                           04480000
+.*-----------------------------------------------------------           04490000
+         AGO   .FILLEND           SET processing completed              04500000
+.NOTSET2 ANOP                                                           04510000
+.*                                                                      04520000
+.*-----------------------------------------------------------           04530000
+.* Execute form sections specific to CLR                                04540000
+.*-----------------------------------------------------------           04550000
+         AIF   (NOT &CLR).NOTCLR2                                       04560000
+         XC    16(8,&REG),16(&REG) Remove Extension                     04570000
+         AGO   .FILLEND           CLR processing completed              04580000
+.NOTCLR2 ANOP                                                           04590000
+.*                                                                      04600000
+.*-----------------------------------------------------------           04610000
+.* Execute form sections specific to QRY                                04620000
+.*-----------------------------------------------------------           04630000
+         AIF   (NOT &QRY).NOTQRY2                                       04640000
+         XC    16(4,&REG),16(&REG)                                      04650000
+         MVC   20(4,&REG),=F'-1'  Check existance                       04660000
+         AGO   .FILLEND           QRY processing completed              04670000
+.NOTQRY2 ANOP                                                           04680000
+.*                                                                      04690000
+.*-----------------------------------------------------------           04700000
+.* Execute form sections specific to RENAME                             04710000
+.*-----------------------------------------------------------           04720000
+         AIF   (NOT &RENAME).NOTREN2                                    04730000
+         XC    16(4,&REG),16(&REG)                                      04740000
+         MVC   20(4,&REG),=F'2'      Rename                             04750000
+         AIF   (T'&NEW EQ 'O').NEWNOK                                   04760000
+         AIF   ('&NEW'(1,1) EQ '''').NEWSTRN                            04770000
+         AIF   ('&NEW'(1,1) EQ '(').NEWREG                              04780000
+         MVC   24(8,&REG),&NEW    Set new name                          04790000
+         AGO   .NEWOK                                                   04800000
+.NEWSTRN ANOP                     Here for quoted string                04810000
+         MVC   24(8,&REG),=CL8&NEW Set new name                         04820000
+         AGO   .NEWOK                                                   04830000
+.NEWREG  ANOP                                                           04840000
+         MVC   24(8,&REG),0&NEW   Set new name                          04850000
+         AGO   .NEWOK                                                   04860000
+.NEWNOK  ANOP                                                           04870000
+         MNOTE 8,'NEW name must be specified for RENAME'                04880000
+         MEXIT                                                          04890000
+.NEWOK   ANOP                                                           04900000
+         AGO   .FILLEND           Rename processing completed           04910000
+.NOTREN2 ANOP                                                           04920000
+.*-----------------------------------------------------------           04930000
+.* Execute form sections specific to ANCHOR                             04940000
+.*-----------------------------------------------------------           04950000
+         AIF   (NOT &ANCH).NOTANC2                                      04960000
+         XC    16(4,1),16(1)                                            04970000
+         MVC   20(4,1),=F'1'      Retrieve anchor                       04980000
+.NOTANC2 ANOP                                                           04990000
+.*-----------------------------------------------------------           05000000
+.* End of plist build                                                   05010000
+.*-----------------------------------------------------------           05020000
+.FILLEND ANOP                                                           05030000
+.*-----------------------------------------------------------           05040000
+.* If Standard form or MF=E, issue an SVC 202.                          05050000
+.* If MF=L or MF=(L,addr) or MF=(L,(reg)), we are done.                 05060000
+.*-----------------------------------------------------------           05070000
+         AIF   (&MFI OR &MFE).GENSVC                                    05080000
+         MEXIT                                                          05090000
+.*-----------------------------------------------------------           05100000
+.* Generate the SVC call                                                05110000
+.*-----------------------------------------------------------           05120000
+.GENSVC  ANOP                                                           05130000
+         SVC   202                Process the call                      05140000
+.*-----------------------------------------------------------           05150000
+.* Processing for ERROR=                                                05160000
+.*-----------------------------------------------------------           05170000
+.ERROR   ANOP                                                           05180000
+         AIF   (T'&ERROR EQ 'O').ERROR1                                 05190000
+         AIF   ('&ERROR' EQ '*').ERROR1                                 05200000
+         AIF   ('&ERROR'(1,1) EQ '(').ERROR2                            05210000
+         DC    AL4(&ERROR)        Error processing address              05220000
+         AGO   .ERROR3                                                  05230000
+.ERROR1  ANOP                                                           05240000
+         DC    AL4(1)                                                   05250000
+         AGO   .ERROR3                                                  05260000
+.ERROR2  ANOP                                                           05270000
+         LTR   15,15              Check return code                     05280000
+         BNZR  &ERROR             Process error if non-zero             05290000
+.ERROR3  ANOP                                                           05300000
+         AIF   (NOT &ANCH AND NOT &QRY).SKIP99                          05310000
+.* Load the return code in R1 if an ANCHOR or QUERY call                05320000
+.* with MF=I or MF=E                                                    05330000
+         L     1,16(,1)           Get anchor or query                   05340000
+*                                     SCBLOCK address in R1             05350000
+.SKIP99  ANOP                                                           05360000
+         MEXIT                                                          05370000
+.*                                                                      05380000
+.*-----------------------------------------------------------*          05390000
+.*                                                           *          05400000
+.* Generate List Form macro expansion       MF=L             *          05410000
+.*                                                           *          05420000
+.*-----------------------------------------------------------*          05430000
+.MFL     ANOP                                                           05440000
+         AIF   (T'&LABEL EQ 'O').NOLBL4                                 05450000
+&LABEL   DS    0D                                                       05460000
+.NOLBL4  ANOP                                                           05470000
+         DC    CL8'&MACNM'                                              05480000
+.*                                                                      05490000
+.*-----------------------------------------------------------           05500000
+.* Generate NAME= for all call types except ANCHOR                      05510000
+.*-----------------------------------------------------------           05520000
+.************************************* Process NAME=                    05530000
+         AIF   (&ANCH).NAMEOK2    No name for ANCHOR                    05540000
+         AIF   (T'&NAME EQ 'O').NONAME2                                 05550000
+         AIF   ('&NAME'(1,1) EQ '''').NAMSTR2                           05560000
+         AIF   ('&NAME'(1,1) EQ '(').NAMREG2                            05570000
+         MNOTE 8,'Address format for NAME invalid with MF=L'            05580000
+         MEXIT                                                          05590000
+.NONAME2 ANOP                                                           05600000
+         DC    CL8' '             Set NAME placeholder                  05610000
+         AGO   .NAMEOK2                                                 05620000
+.NAMSTR2 ANOP                                                           05630000
+         DC    CL8&NAME           SET NAME as quoted string             05640000
+         AGO   .NAMEOK2                                                 05650000
+.NAMREG2 ANOP                                                           05660000
+         MNOTE 8,'Register format for name invalid with MF=L'           05670000
+         MEXIT                                                          05680000
+.NAMEOK2 ANOP                                                           05690000
+.*                                                                      05700000
+.*-----------------------------------------------------------           05710000
+.* List form sections specific to SET                                   05720000
+.*-----------------------------------------------------------           05730000
+         AIF   (NOT &SET).NOTSET3                                       05740000
+.************************************* Process INTTYPE=                 05750000
+         AIF   (T'&INTTYPE EQ 'O').INTNON2 Default=None                 05760000
+         AIF   ('&INTTYPE' EQ 'NONE').INTNON2                           05770000
+         AIF   ('&INTTYPE' EQ 'ALL').INTALL2                            05780000
+.INTNON2 ANOP                                                           05790000
+         DC    X'00'              Set interrupts disabled               05800000
+         AGO   .INTOK2                                                  05810000
+.INTALL2 ANOP                                                           05820000
+         DC    X'FF'              Set interrupts enabled                05830000
+.INTOK2  ANOP                                                           05840000
+.************************************* Process KEY=                     05850000
+         AIF   (T'&KEY EQ 'O').KEYUSR2  default=USER                    05860000
+         AIF   ('&KEY' EQ 'USER').KEYUSR2                               05870000
+         AIF   ('&KEY' EQ 'NUCLEUS').KEYNUC2                            05880000
+         MNOTE 8,'KEY must be NUCLEUS or USER'                          05890000
+         MEXIT                                                          05900000
+.KEYNUC2 ANOP                                                           05910000
+         DC    X'04'              Set NUCLEUS protect key               05920000
+         AGO   .KEYOK2                                                  05930000
+.KEYUSR2 ANOP                                                           05940000
+         DC    X'E4'              Set USER protect key                  05950000
+.KEYOK2  ANOP                                                           05960000
+.************************************* Fill in the flags                05970000
+&SYSBIT  SETB  0                  Default is SYSTEM=NO                  05980000
+&SERVBIT SETB  0                  Default is SERVICE=NO                 05990000
+&ENDCBIT SETB  0                  Default is ENDCMD=NO                  06000000
+         AIF   (T'&SYSTEM EQ 'O').SYSSKP1                               06010000
+         AIF   ('&SYSTEM' EQ 'YES' OR '&SYSTEM' EQ 'NO').SYSTOK1        06020000
+         MNOTE 8,'SYSTEM must be ''YES'' or ''NO'''                     06030000
+         MEXIT                                                          06040000
+.SYSTOK1 ANOP                                                           06050000
+&SYSBIT  SETB  ('&SYSTEM' EQ 'YES')                                     06060000
+.SYSSKP1 ANOP                                                           06070000
+.*                                                                      06080000
+         AIF   (T'&SERVICE  EQ 'O' OR '&MACNM' NE 'NUCEXT').SRVSKP1     06090000
+         AIF   ('&SERVICE' EQ 'YES' OR '&SERVICE' EQ 'NO').SERVOK1      06100000
+         MNOTE 8,'SERVICE must be ''YES'' or ''NO'''                    06110000
+         MEXIT                                                          06120000
+.SERVOK1 ANOP                                                           06130000
+&SERVBIT SETB  ('&SERVICE' EQ 'YES')                                    06140000
+.SRVSKP1 ANOP                                                           06150000
+.*                                                                      06160000
+         AIF   (T'&ENDCMD  EQ 'O' OR '&MACNM' NE 'NUCEXT').ENDSKP1      06170000
+         AIF   ('&ENDCMD' EQ 'YES' OR '&ENDCMD' EQ 'NO').ENDCOK1        06180000
+         MNOTE 8,'ENDCMD must be ''YES'' or ''NO'''                     06190000
+         MEXIT                                                          06200000
+.ENDCOK1 ANOP                                                           06210000
+&ENDCBIT SETB  ('&ENDCMD' EQ 'YES')                                     06220000
+.ENDSKP1 ANOP                                                           06230000
+         DC    B'&SYSBIT.&SERVBIT.0&ENDCBIT.0000'                       06240000
+         DC    X'00'                                                    06250000
+.*                                                                      06260000
+.************************************* Process ENTRY=                   06270000
+         AIF   (T'&ENTRY EQ 'O').NOENTR1                                06280000
+         AIF   ('&ENTRY'(1,1) EQ '(').ENTREG1                           06290000
+         DC    A(&ENTRY)          Set entry point                       06300000
+         AGO   .NTRYOK1                                                 06310000
+         MEXIT                                                          06320000
+.NOENTR1 ANOP                                                           06330000
+         DC    A(0)               Entry point placeholder               06340000
+         AGO   .NTRYOK1                                                 06350000
+.ENTREG1 ANOP                                                           06360000
+         MNOTE 8,'Register format for ENTRY invalid with MF=L'          06370000
+         MEXIT                                                          06380000
+.NTRYOK1 ANOP                                                           06390000
+.************************************* PROCESS UWORD=                   06400000
+         AIF   (T'&UWORD EQ 'O').NOUWRD1                                06410000
+         AIF   ('&UWORD'(1,1) EQ '(').UWRDRG1                           06420000
+         DC    A(&UWORD)          Set User Word                         06430000
+         AGO   .UWRDOK1                                                 06440000
+.NOUWRD1 ANOP                                                           06450000
+         DC    A(0)               Set UWORD placeholder                 06460000
+         AGO   .UWRDOK1                                                 06470000
+.UWRDRG1 ANOP                                                           06480000
+         MNOTE 8,'Register format for UWORD invalid with MF=L'          06490000
+         MEXIT                                                          06500000
+.UWRDOK1 ANOP                                                           06510000
+.************************************* PROCESS ORIGIN=                  06520000
+         AIF   (T'&ORIGIN EQ 'O').ORI2NOT                               06530000
+         AIF   (N'&ORIGIN NE 2).ORI2NOK                                 06540000
+.************************************* PROCESS ORIGIN address           06550000
+         AIF   ('&ORIGIN(1)'(1,1) EQ '(').ORIREG1                       06560000
+         DC    A(&ORIGIN(1))      Set Origin address                    06570000
+         AGO   .ORI2OK1                                                 06580000
+.ORIREG1 ANOP                                                           06590000
+         MNOTE 8,'Register format for ORIGIN address invalid with MF=L' 06600000
+         MEXIT                                                          06610000
+.ORI2OK1 ANOP                                                           06620000
+.************************************* PROCESS ORIGIN length            06630000
+         AIF   ('&ORIGIN(2)'(1,1) EQ '(').ORIREG2                       06640000
+         DC    A(&ORIGIN(2))      Set Origin length                     06650000
+         AGO   .ORI2OK2                                                 06660000
+.ORI2NOT ANOP                                                           06670000
+         DC    F'0'               No Origin address                     06680000
+         DC    F'0'               No Origin length                      06690000
+.ORI2OK2 ANOP                                                           06700000
+         AGO   .GENSVC            SET processing completed              06710000
+.ORIREG2 ANOP                                                           06720000
+         MNOTE 8,'Register format for ORIGIN length invalid with MF=L'  06730000
+         MEXIT                                                          06740000
+.ORI2NOK ANOP                                                           06750000
+         MNOTE 8,'Correct form is ORIGIN(address,length)'               06760000
+         MEXIT                                                          06770000
+         AGO   .ENDLIST           SET processing completed              06780000
+.NOTSET3 ANOP                                                           06790000
+.*                                                                      06800000
+.*-----------------------------------------------------------           06810000
+.* List form sections specific to CLR                                   06820000
+.*-----------------------------------------------------------           06830000
+         AIF   (NOT &CLR).NOTCLR3                                       06840000
+         DC    F'0'                                                     06850000
+         DC    F'0'               Remove Extension                      06860000
+         AGO   .ENDLIST           CLR processing completed              06870000
+.NOTCLR3 ANOP                                                           06880000
+.*                                                                      06890000
+.*-----------------------------------------------------------           06900000
+.* List form sections specific to QRY                                   06910000
+.*-----------------------------------------------------------           06920000
+         AIF   (NOT &QRY).NOTQRY3                                       06930000
+         DC    F'0'                                                     06940000
+         DC    F'-1'              Check existance                       06950000
+         AGO   .ENDLIST           QRY processing completed              06960000
+.NOTQRY3 ANOP                                                           06970000
+.*                                                                      06980000
+.*-----------------------------------------------------------           06990000
+.* List form sections specific to EXT RENAME                            07000000
+.*-----------------------------------------------------------           07010000
+         AIF   (NOT &RENAME).NOTREN3                                    07020000
+         DC    F'0'                                                     07030000
+         DC    F'2'               Rename                                07040000
+         DC    CL8' '             New name                              07050000
+         AGO   .ENDLIST           Rename processing completed           07060000
+.NOTREN3 ANOP                                                           07070000
+.*-----------------------------------------------------------           07080000
+.* List form sections specific to ANCHOR                                07090000
+.*-----------------------------------------------------------           07100000
+         AIF   (NOT &ANCH).NOTANC3                                      07110000
+         DC    CL8' '                                                   07120000
+         DC    F'0'                                                     07130000
+         DC    F'1'               Retrieve anchor                       07140000
+         AGO   .ENDLIST           ANCHOR processing completed           07150000
+.NOTANC3 ANOP                                                           07160000
+         MNOTE 'Logic error in &MACNM'                                  07170000
+.ENDLIST ANOP                                                           07180000
+         MEND                     MF=L processing complete              07190000

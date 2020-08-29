@@ -1,0 +1,118 @@
+     TITLE 'DMSNXM: Display the NUCEXT control block chain'             00010000
+**************************************************************          00020000
+* Simulate the NUCXMAP command in later CMS levels.          *          00030000
+**************************************************************          00040000
+DMSNXM   CSECT                                                          00050000
+         USING NUCON,0                                                  00060000
+         STM   R14,R12,12(R13)                                          00070000
+         LR    R12,R15                                                  00080000
+         USING DMSNXM,R12                                               00090000
+*                                                                       00100000
+         L     R2,NUCXCBLK        List anchor                           00110000
+         LTR   R2,R2              Anything there?                       00120000
+         BNZ   DISPLAY            Go display it if found                00130000
+         WRTERM 'No Nucleus Extensions found.'                          00140000
+         LA    R15,28             Not found RC                          00150000
+         B     GOBACK             Done                                  00160000
+*                                                                       00170000
+DISPLAY  DS    0H                                                       00180000
+         WRTERM TITLE,TITLELEN    Display report title                  00190000
+*                                                                       00200000
+         USING SCBLOCK,R2                                               00210000
+MAINLOOP DS    0H                                                       00220000
+         MVI   LINE,C' '          Blank out the line                    00230000
+         MVC   LINE+1(LINELEN-1),LINE                                   00240000
+         MVC   NAME,SCBNAME                                             00250000
+*                                                                       00260000
+         L     R3,SCBENTR         Entry address in binary               00270000
+         ST    R3,TEMPSAVE               Binary                         00280000
+         UNPK  TEMPSAVE+8(9),TEMPSAVE(5) Unpack                         00290000
+         TR    TEMPSAVE+8(8),DMPTAB-C'0' Trans to hex chars             00300000
+         MVC   ENTRY(8),TEMPSAVE+8 Copy to output line                  00310000
+*                                                                       00320000
+         L     R3,SCBWKWRD        Work Word in binary                   00330000
+         ST    R3,TEMPSAVE               Binary                         00340000
+         UNPK  TEMPSAVE+8(9),TEMPSAVE(5) Unpack                         00350000
+         TR    TEMPSAVE+8(8),DMPTAB-C'0' Trans to hex chars             00360000
+         MVC   USERWORD(8),TEMPSAVE+8 Copy to output line               00370000
+*                                                                       00380000
+         L     R3,SCBXORG         Code address in binary                00390000
+         ST    R3,TEMPSAVE               Binary                         00400000
+         UNPK  TEMPSAVE+8(9),TEMPSAVE(5) Unpack                         00410000
+         TR    TEMPSAVE+8(8),DMPTAB-C'0' Trans to hex chars             00420000
+         MVC   ORIGIN(8),TEMPSAVE+8 Copy to output line                 00430000
+*                                                                       00440000
+         L     R3,SCBXLEN         Code length in binary                 00450000
+         ST    R3,TEMPSAVE               Binary                         00460000
+         UNPK  TEMPSAVE+8(9),TEMPSAVE(5) Unpack                         00470000
+         TR    TEMPSAVE+8(8),DMPTAB-C'0' Trans to hex chars             00480000
+         MVC   BYTES(8),TEMPSAVE+8  Copy to output line                 00490000
+*                                                                       00500000
+         MVC   AMODE(2),=C'24'                                          00510000
+*                                                                       00520000
+         TM    SCBSFLAG,SCBSFSYS  SYSTEM flag set?                      00530000
+         BZ    *+10               Skip next if not                      00540000
+         MVC   SYSTEM,=C'SYSTEM'                                        00550000
+*                                                                       00560000
+         TM    SCBSFLAG,SCBSFSER  SERVICE flag set?                     00570000
+         BZ    *+10               Skip next if not                      00580000
+         MVC   SERVICE,=C'SERVICE'                                      00590000
+*                                                                       00600000
+         TM    SCBSFLAG,SCBSFEND  ENDCMD flag set?                      00610000
+         BZ    *+10               Skip next if not                      00620000
+         MVC   ENDCMD,=C'ENDCMD'                                        00630000
+*                                                                       00640000
+*        TM    SCBSFLAG,SCBSFSER  IMMCMD flag set?    Maybe later       00650000
+*        BZ    *+10               Skip next if not                      00660000
+*        MVC   IMMCMD,=C'IMMCMD'                                        00670000
+*                                                                       00680000
+         TM    SCBSFLAG,SCBSPERM  PERM flag set?                        00690000
+         BZ    *+10               Skip next if not                      00700000
+         MVC   PERM,=C'PERM'                                            00710000
+*                                                                       00720000
+         WRTERM LINE,LINELEN      Show next output line                 00730000
+         ICM   R2,B'1111',SCBFWPTR                                      00740000
+         BNZ   MAINLOOP                                                 00750000
+         SR    R15,R15                                                  00760000
+GOBACK   DS    0H                                                       00770000
+         L     R14,12(,R13)                                             00780000
+         LM    R0,R12,20(R13)                                           00790000
+         BR    R14                                                      00800000
+*                                                                       00810000
+TITLE    DC    C'Name      Entry    Userword Origin   Bytes   Amode (At*00820000
+               tributes)'                                               00830000
+TITLELEN EQU   *-TITLE                                                  00840000
+*                                                                       00850000
+LINE     DS    0C                                                       00860000
+NAME     DC    CL8'Name'                                                00870000
+         DC    C'  '                                                    00880000
+ENTRY    DC    CL8'Entry'                                               00890000
+         DC    C' '                                                     00900000
+USERWORD DC    CL8'Userword'                                            00910000
+         DC    C' '                                                     00920000
+ORIGIN   DC    CL8'Origin'                                              00930000
+         DC    C' '                                                     00940000
+BYTES    DC    CL8'Bytes'                                               00950000
+         DC    C'   '                                                   00960000
+AMODE    DC    C'24'                                                    00970000
+         DC    C'  '                                                    00980000
+SYSTEM   DC    C'      '                                                00990000
+         DC    C' '                                                     01000000
+SERVICE  DC    C'       '                                               01010000
+         DC    C' '                                                     01020000
+ENDCMD   DC    C'      '                                                01030000
+         DC    C' '                                                     01040000
+IMMCMD   DC    C'      '                                                01050000
+         DC    C' '                                                     01060000
+PERM     DC    C'    '                                                  01070000
+LINELEN  EQU   *-LINE                                                   01080000
+*                                                                       01090000
+TEMPSAVE DS    D                                                        01100000
+         DS    CL9                                                      01110000
+*                                                                       01120000
+DMPTAB   DC    C'0123456789ABCDEF' Translate table to printable         01130000
+         EJECT ,                                                        01140000
+         REGEQU ,                                                       01150000
+         SCBLOCK ,                                                      01160000
+         NUCON ,                                                        01170000
+         END                                                            01180000

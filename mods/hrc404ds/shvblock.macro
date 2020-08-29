@@ -1,0 +1,47 @@
+         MACRO                                                          00010000
+         SHVBLOCK ,                                                     00020000
+*                                                                       00030000
+* This control block is used to FETCH, STORE and DROP REXX              00040000
+* variables, as requested by an external program. This                  00050000
+* external program is called by REXX, or called by another              00060000
+* program called by REXX. The external program makes its                00070000
+* request by calling the REXX subcommand named EXECCOMM                 00080000
+* with a call type X'02' plist. This control block tells                00090000
+* REXX where to retrieve or return the values of REXX                   00100000
+* variables.                                                            00110000
+*                                                                       00120000
+SHVBLOCK DSECT ,                                                        00130000
+SHVNEXT  DS    A                  Ptr to next SHVBLOCK or 0             00140000
+SHVUSER  DS    A                  Used by the SHVNEXTV call             00150000
+SHVCODE  DS    C                  Function code                         00160000
+SHVRET   DS    X                  Return code flags                     00170000
+         DS    H'0'               Reserved                              00180000
+SHVBUFL  DS    F                  FETCH buffer length                   00190000
+SHVNAMA  DS    A                  Address of variable name              00200000
+SHVNAML  DS    F                  Length of variable name               00210000
+SHVVALA  DS    A                  Address of variable buffer or 0       00220000
+SHVVALL  DS    F                  Length of value returned              00230000
+SHVBLEN  EQU   *-SHVBLOCK         SHVBLOCK size                         00240000
+*                                                                       00250000
+*                                 SHVCODE values                        00260000
+*                                                                       00270000
+SHVFETCH EQU   C'F'               Copy variable value to buffer         00280000
+SHVSTORE EQU   C'S'               Store value in Variable               00290000
+SHVDROPV EQU   C'D'               DROP variable                         00300000
+SHVSYFET EQU   X'86'        =C'f' Symbolic name variable fetch          00310000
+SHVSYSET EQU   X'A2'        =C's' Symbolic name variable assign         00320000
+SHVSYDRO EQU   X'84'        =C'd' Symbolic name variable DROP           00330000
+SHVNEXTV EQU   C'N'               Fetch next variable                   00340000
+SHVPRIV  EQU   C'P'               Fetch private information             00350000
+*                                                                       00360000
+*                                 SHVRET values                         00370000
+*                                                                       00380000
+SHVCLEAN EQU   X'00'              Success                               00390000
+SHVNEWV  EQU   X'01'              Variable does not exist               00400000
+SHVLVAR  EQU   X'02'              All variables transferred             00410000
+*                                   for SHVNEXTV call                   00420000
+SHVTRUNC EQU   X'04'              Value truncated for SHVFETCH          00430000
+SHVBADN  EQU   X'08'              Valiable name invalid                 00440000
+SHVBADV  EQU   X'10'              Variable value invalid                00450000
+SHVBADF  EQU   X'80'              Function cdoe invalid                 00460000
+         MEND                                                           00470000

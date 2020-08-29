@@ -1,6 +1,9 @@
 VM/370 Docker Container - Changelog
 ===================================
 
+1.4.22 - MOD HRC403DS
+       - MOD HRC404DS
+       - Updated GCCLIB to Version 0.7.18
 1.4.21 - Updated GCCLIB to Version 0.7.17 (VM/370 DASD)
 1.4.20 - Updated GCCLIB to Version 0.7.16 (VM/370 DASD)
          (Makes EXEC Fixed format - workaround)

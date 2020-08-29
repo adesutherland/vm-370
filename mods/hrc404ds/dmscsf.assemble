@@ -1,0 +1,171 @@
+DMSCSF   CSECT                                                          00010000
+*.                                                                      00020000
+*  Module name -                                                        00030000
+*                                                                       00040000
+*         DMSCSF                                                        00050000
+*                                                                       00060000
+*  Function -                                                           00070000
+*                                                                       00080000
+*         CMS Subcommand support for VM/370                             00090000
+*                                                                       00100000
+*         Process the command as if it were entered at the console      00110000
+*                                                                       00120000
+*  Attributes -                                                         00130000
+*                                                                       00140000
+*                                                                       00150000
+*         Nucleus resident, Re-Entrant                                  00160000
+*                                                                       00170000
+*  Entry points -                                                       00180000
+*                                                                       00190000
+*        DMSCSFSC - CMS subcommand                                      00200000
+*                                                                       00210000
+*  Entry conditions-                                                    00220000
+*                                                                       00230000
+*        R1 points to a tokenized plist for a command                   00240000
+*        R0 points to an extended plist for that command                00250000
+*        Entered as a subcommand with calltype X'02'                    00260000
+*                                                                       00270000
+*  Operation -                                                          00280000
+*                                                                       00290000
+*   1) If IMPEX is set for implied EXEC execution, search for           00300000
+*      an EXEC file with the appropriate filename and run it.           00310000
+*      Otherwsie, proceed to step 8.                                    00320000
+*                                                                       00330000
+*   2) If ABBREV is set on, search for a matching abbreviation          00340000
+*      and if found, go to step 1.                                      00350000
+*                                                                       00360000
+*   3) Call the command with a type X'01' plist. If found then          00370000
+*      return to caller.                                                00380000
+*                                                                       00390000
+*   4) Call DMSCPF to process the command as a CP command. If           00400000
+*      successful, return to caller.                                    00410000
+*                                                                       00420000
+*   4) Return to caller with RC = -3.                                   00430000
+*                                                                       00440000
+* Exit conditions -                                                     00450000
+*                                                                       00460000
+*        R15 = Return code from the command or -3.                      00470000
+*                                                                       00480000
+*  Tables / Workareas -                                                 00490000
+*                                                                       00500000
+*        NUCON                                                          00510000
+*                                                                       00520000
+*  Register usage -                                                     00530000
+*                                                                       00540000
+*        R14-15 linkage and work registers                              00550000
+*                                                                       00560000
+***********************************************************             00570000
+         EJECT ,                                                        00580000
+         USING NUCON,0                                                  00590000
+         USING DMSCSF,R12                                               00600000
+         STM   R14,R12,12(R13)    Save entry regs                       00610000
+         LR    R12,R15                                                  00620000
+         L     R10,AOPSECT        Point to plist build area             00630000
+         USING OPSECT,R10                                               00640000
+*                                                                       00650000
+         LR    R6,R0              Pointer to EPLIST                     00660000
+         USING EPLIST,R6                                                00670000
+         L     R1,EPLARGBG        Pointer to passed command             00680000
+         L     R0,EPLARGND        Pointer past end of command           00690000
+         SR    R0,R1              Length of the command                 00700000
+         L     R15,ASCANN         Convert input line                    00710000
+         BALR  R14,R15              to a tokenized plist                00720000
+         CLC   CMNDLIST(8),=X'FF' Is it a null line?                    00730000
+         BE    CSFDONE            If so, nothing to do                  00740000
+         CLI   CMNDLIST,C'*'      Is it a comment?                      00750000
+         BE    CSFDONE            If so, nothing to do                  00760000
+         L     R15,NUCUPPER       Standard uppercase table              00770000
+         LR    R4,R1              Tokenized plist pointer               00780000
+         LR    R2,R0              Tokenized plist length                00790000
+*                                                                       00800000
+         CH    R2,*+10            Less than or equal to max?            00810000
+         BNH   *+8                OK                                    00820000
+         LA    R2,256             Else use max                          00830000
+*                                                                       00840000
+         BCTR  R2,0                                                     00850000
+         EX    R2,UPTRANS         Uppercase this section                00860000
+         B     CSFCHKEX           Go look for our command               00870000
+UPTRANS  TR    0(*-*,R4),0(R15)                                         00880000
+***********************************************************             00890000
+*        Find an EXEC with a Filename matching the Command              00900000
+***********************************************************             00910000
+CSFCHKEX DS    0H                                                       00920000
+         CLC   =CL8'EXEC',0(R4)   Explicit EXEC invocation?             00930000
+         BE    CSFGO              Y. Skip Implied EXEC stuff            00940000
+         TM    OPTFLAGS,NOIMPEX   Is Implied EXEC not wanted?           00950000
+         BO    CSFGO              Skip trying EXEC if so                00960000
+*                                                                       00970000
+         MVC   FILENAME,0(R4)     Set command name as Filename          00980000
+         MVC   FILETYPE(10),=C'EXEC    * '                              00990000
+         L     R15,=V(DMSLFS)     Look for the file                     01000000
+         LA    R1,PLIST                                                 01010000
+         BALR  R14,R15                                                  01020000
+         BNZ   CSFABBRV           No, go check for abbreviation         01030000
+         SH    R4,=H'8'           Point to CL8'EXEC'                    01040000
+         B     CSFCPCMS             and call EXEC as a CMS cmd          01050000
+*                                                                       01060000
+***********************************************************             01070000
+*        No EXEC file. Check for an abbreviation                        01080000
+***********************************************************             01090000
+CSFABBRV DS    0H                                                       01100000
+         TM    OPTFLAGS,NOABBREV Well, are abbreviations OK?            01110000
+         BO    CSFCPCMS       No. then it is not an EXEC                01120000
+*                                                                       01130000
+         LM    R0,R1,0(R4)    Full name as entered                      01140000
+         L     R15,=V(ABBREV) Call abbreviation checker                 01150000
+         BALR  R14,R15                                                  01160000
+         LTR   R15,R15        Found a match                             01170000
+         BNZ   CSFCPCMS       No, it's not an abbreviation              01180000
+*                                                                       01190000
+         STM   R0,R1,FILENAME Set command name from ABBREV              01200000
+         L     R15,=V(DMSLFS) Does the file exist?                      01210000
+         LA    R1,PLIST                                                 01220000
+         BALR  R14,R15                                                  01230000
+         BNZ   CSFFNF         No file found, check internal cmd         01240000
+         MVC   0(8,R4),FILENAME   INSERT "ABBR"COMMAND NAME IN COMBUF   01250000
+         SH    R4,=H'8'       DON'T SAY IT'S AN EXEC                    01260000
+         B     CSFCPCMS       If not, try as CMS command                01270000
+*                                                                       01280000
+***********************************************************             01290000
+*        File not found                                                 01300000
+***********************************************************             01310000
+CSFFNF   DS    0H                                                       01320000
+         CLC   FILENAME(3),=C'CP ' In SYNONYM CP?                       01330000
+         BE    CSFCP          If so, try as CP command                  01340000
+***********************************************************             01350000
+*        Run as a CMS command or a CP command                           01360000
+***********************************************************             01370000
+CSFCPCMS LR    R1,R4          R1 -> "EXEC" or 'COMMAND'                 01380000
+CSFGO    DS    0H                                                       01390000
+         CLC   0(3,R1),=C'CP ' Is it an explicit CP request?            01400000
+         BE    CSFCP          GO THERE IF SO                            01410000
+*                                                                       01420000
+         LA    R0,NUCPLIST    Point to contructed EPLIST                01430000
+         ICM   R1,B'1000',=X'0B' Simulate console invocation            01440000
+         SVC   202            Run command now                           01450000
+         DC    AL4(*+4)                                                 01460000
+         B     CSFDONE                                                  01470000
+***********************************************************             01480000
+*        Run as a CP command                                            01490000
+***********************************************************             01500000
+CSFCP    DS    0H                                                       01510000
+         LA    R1,CMNDLIST    Address of command line                   01520000
+         L     R15,=V(DMSCPF) Try as a CP command                       01530000
+         BALR  R14,R15                                                  01540000
+         CH    R15,=H'1'      Does RC say 'Unknown cmd'?                01550000
+         BNE   CSFDONE        Done here if not                          01560000
+         LNR   R15,R15        Make it a -1                              01570000
+*                                                                       01580000
+CSFDONE  DS    0H                                                       01590000
+         L     R14,12(,R13)                                             01600000
+         LM    R0,R12,20(R13)                                           01610000
+         BR    R14                                                      01620000
+*                                                                       01630000
+         LTORG ,                                                        01640000
+         EJECT ,                                                        01650000
+         NUCON ,                                                        01660000
+         IO ,                                                           01670000
+         EPLIST ,                                                       01680000
+         EQUATES ,                                                      01690000
+         REGEQU ,                                                       01700000
+         END                                                            01710000

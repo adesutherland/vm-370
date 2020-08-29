@@ -11,6 +11,12 @@ herccontrol "/CMSACC" -w "^Ready;"
 # Rebuild the CMS nucleus by following step 7 of the procedure in SYSPROG MEMO
 herccontrol "/purge rdr" -w "^Ready;"
 herccontrol "/vmfload cmsload dmshrc" -w "^Ready;"
+herccontrol "/SPOOL 00C CLASS *" -w "^Ready;"
+
+# herccontrol "/CP Q PUN ALL *" -w "^Ready;"
+# herccontrol "/CP Q RDR ALL *" -w "^Ready;"
+# herccontrol "/CP Q V 00C" -w "^Ready;"
+
 herccontrol "/ipl 00c clear" -w "DMSINI606R"
 
 # DMSINI606R SYSTEM DISK ADDRESS = 190
@@ -32,10 +38,10 @@ herccontrol "/59"
 herccontrol "/yes"
 
 # DMSINI611R VERSION IDENTIFICATION =
-herccontrol "/"
+herccontrol "/CMS VERSION 6.0 DOCKER 1.4.21"
 
 # DMSINI612R INSTALLATION HEADING =
-herccontrol "/"
+herccontrol "/Conversional Monitor System"
 
 herccontrol "/" -w "^Ready;"
 

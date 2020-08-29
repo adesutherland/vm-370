@@ -1,0 +1,26 @@
+./ I 355000 $ 355100 100
+         L     R15,=V(DMSSNXAB)   NUCX ABEND handler routine
+         BAL   RR,NUCCALL         Go cleanup extensions
+./ R 403000 $ 403020 20
+*
+* Account for any Nucleus Extension storage not released at    HRC404DS
+* end of command.                                              HRC404DS
+         LA    R15,NUCXCBLK       Point to NUCEXT chain        HRC404DS
+NUCXNXT  DS    0H                                              HRC404DS
+         ICM   R15,B'1111',SCBFWPTR-SCBLOCK(R15) Next SCBLOCK  HRC404DS
+         BZ    NUCXDONE                                        HRC404DS
+         LA    R14,7                                           HRC404DS
+         A     R14,SCBXLEN-SCBLOCK(,R15) Add in any storage    HRC404DS
+         SRL   R14,3              Amount in dwords             HRC404DS
+         AR    SUM,R14                                         HRC404DS
+         B     NUCXNXT            On to next block             HRC404DS
+NUCXDONE DS    0H                                              HRC404DS
+*                                                              HRC404DS
+* Account for any Nucleus Extension storage on the cache       HRC404DS
+         ICM   R15,B'1111',NUCXCBEE  Point to NUCEXT cache     HRC404DS
+         BZ    *+8                                             HRC404DS
+         A     SUM,=A(4096/8)     It is one page               HRC404DS
+*                                                              HRC404DS
+         A     SUM,NUCXFRES       Account for any workareas    HRC404DS
+./ I 600000 $ 600100 100
+         SCBLOCK ,                                             HRC404DS

@@ -1,6 +1,8 @@
 VM/370 Docker Container - Changelog
 ===================================
 
+1.4.23 - Updated GCCLIB to Version 0.7.19
+       - Updated BREXX to Version 0.9.7 (VM/370 DASD)
 1.4.22 - MOD HRC403DS
        - MOD HRC404DS
        - Updated GCCLIB to Version 0.7.18

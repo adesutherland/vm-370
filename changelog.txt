@@ -1,9 +1,12 @@
 VM/370 Docker Container - Changelog
 ===================================
 
-1.4.21 - MOD HRC403DS
+1.4.23 - Updated GCCLIB to Version 0.7.19
+       - Updated BREXX to Version 0.9.7 (VM/370 DASD)
+1.4.22 - MOD HRC403DS
        - MOD HRC404DS
        - Updated GCCLIB to Version 0.7.18
+1.4.21 - Updated GCCLIB to Version 0.7.17 (VM/370 DASD)
 1.4.20 - Updated GCCLIB to Version 0.7.16 (VM/370 DASD)
          (Makes EXEC Fixed format - workaround)
 1.4.19 - Known defect with sysprof exec (undiagnosed), fixed by:

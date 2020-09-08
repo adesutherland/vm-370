@@ -43,7 +43,7 @@ rm YATA-CMS.zip
 
 # Load a standalone version of BREXX for MAINT to load mods
 # MNTREXX on MAINTs A Drive
-wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v0.9.6/BREXX.zip
+wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v0.9.7/BREXX.zip
 unzip BREXX.zip
 mkdir io
 cp BREXX/* io
@@ -145,7 +145,7 @@ cd ..
 
 # GCCLIB
 (cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
-wget -nv https://github.com/adesutherland/CMS-370-GCCLIB/releases/download/v0.7.18/GCCLIB.zip
+wget -nv https://github.com/adesutherland/CMS-370-GCCLIB/releases/download/v0.7.19/GCCLIB.zip
 unzip GCCLIB.zip
 chmod +x GCCLIB/cmsinstall.sh
 mkdir io
@@ -160,7 +160,7 @@ rm GCCLIB.zip
 
 # CMS BREXX
 (cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
-wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v0.9.6/BREXX.zip
+wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v0.9.7/BREXX.zip
 unzip BREXX.zip
 chmod +x BREXX/cmsinstall.sh
 mkdir io

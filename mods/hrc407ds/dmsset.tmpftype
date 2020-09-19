@@ -1,0 +1,24 @@
+./ I 39000 $ 39100 100
+*                           EXECTRAC                           HRC407DS
+./ I 292000 $ 292100 100
+         DC    CL8'EXECTRAC'  EXECTRAC                         HRC407DS
+         B     EXECTRTN                                        HRC407DS
+./ I 486000 $ 486050 50
+         EJECT                                                 HRC407DS
+*                                                              HRC407DS
+* SET EXECTRAC ON|OFF                                          HRC407DS
+*                                                              HRC407DS
+EXECTRTN DS    0H                                              HRC407DS
+         CLI   0(R3),X'FF'    Does argument follow function?   HRC407DS
+         BE    ERROR050       Error if not                     HRC407DS
+         CLI   8(R3),X'FF'    Fence after this ?               HRC407DS
+         BNE   ERROR070       If not, unexpteced parameter     HRC407DS
+         CLC   ON,0(R3)       ON wanted?                       HRC407DS
+         BE    EXECTON        Go set if yes                    HRC407DS
+         CLC   OFF,0(R3)      OFF wanted?                      HRC407DS
+         BE    EXECTOFF       Go set off if yes                HRC407DS
+         B     CHARBAD        Error if neither                 HRC407DS
+EXECTON  OI    EXECFLAG,EXECTRAC                               HRC407DS
+         B     SR1515                                          HRC407DS
+EXECTOFF NI    EXECFLAG,X'FF'-EXECTRAC Set flag off            HRC407DS
+         B     SR1515                                          HRC407DS

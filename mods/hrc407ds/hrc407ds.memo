@@ -1,0 +1,70 @@
+This update implements support for the EXECTRAC option
+on the CMS SET command.
+
+SET EXECTRAC ON
+
+causes a REXX EXEC to execute as if 'trace ?a' had been
+specified with the EXEC.
+
+SET EXECTRAC OFF
+
+causes REXX tracing to end.
+
+QUERY EXECTRAC
+
+displays the current EXECTRAC setting.
+
+
+The syntax and usage description of these commands
+are found in any set of VM manuals starting with VM/SP.
+
+Updates for assemble files:
+
+DMSQRY   HRC407DS  - Implements the QUERY EXECTRAC commmand.
+
+DMSSET   HRC407DS  - Implements the SET EXECTRAC command.
+
+The following steps require that a CMS maintenance disk
+search order be established. On the Sixpack, issue the
+CMSACC comand on the MAINT ID.
+
+Steps to apply:
+
+1. Add the line below, as the top line in the top level AUX file for
+   the changed files listed above: (In an unmodified Sixpack, the
+   top level AUX file has filetype AUXHRC.)
+
+HRC407DS V01 Add SET EXECTRAC command for REXX
+
+2. Recompile all new or updated assembler files. (In an unmodified
+   Sixpack, the assembler source control file is DMSHRC CNTRL.)
+
+   VMFASM DMSSET DMSHRC
+   VMFASM DMSQRY DMSHRC
+
+3. Build any any command module files.
+
+   CMSGEND QUERY
+   CMSGEND SET
+
+4. Copy new MODULE files to the CMS System Disk.
+
+   ACCESS 190 Z                                  <--- where B is any free modeletter.
+   COPY SET      MODULE A2 = = Z2 ( OLDDATE REP  <--- Be sure to specify mode number 2
+   COPY QUERY    MODULE A2 = = Z2 ( OLDDATE REP
+   RELEASE B
+
+5. Resave the CMS saved segment.
+
+   ipl 190 clear
+   VM/370 SIXPACK TEST SYSTEM
+   savesys cms                         <-- Must be the first command after IPL
+   SYSTEM SAVED
+   VM/370 SIXPACK TEST SYSTEM
+
+   Y (19E) R/O
+
+   +-----------------------------------------------------------------------------+
+   |          Welcome to VM/370 and VM/380 "SixPack" version 1.3!  |
+   +-----------------------------------------------------------------------------+
+   Ready; T=0.01/0.04 03:33:02

@@ -1,0 +1,23 @@
+./ R 107000 $ 107100 100
+         LA    R3,1                                            HRC406DS
+         A     R3,NUCNLSTK        Update number of             HRC406DS
+         ST    R3,NUCNLSTK           lines in the stack        HRC406DS
+         LM    R3,R4,NUCFSTLN     Load NUCFSTLN,NUCLSTLN       HRC406DS
+*                                 First and last lines         HRC406DS
+./ I 111000 $ 111100 100
+         ST    R1,NUCFSTLN        New first line               HRC406DS
+./ R 112000 115000 $ 112100 100
+         LTR   R4,R4              Was the stack empty before?  HRC406DS
+         BP    EXIT               All done here if not         HRC406DS
+         B     UPDLAST            Go set new last line         HRC406DS
+./ R 119000 125000 $ 119100 100
+         BP    ATTHEEND           If so add at the end         HRC406DS
+         ST    R3,0(,R1)          Add at the beginning         HRC406DS
+         ST    R1,NUCFSTLN        Set 1st line                 HRC406DS
+         B     UPDLAST            Go set last too              HRC406DS
+*                                                              HRC406DS
+ATTHEEND DS    0H                                              HRC406DS
+         MVC   0(4,R1),0(R4)      Chain old to new             HRC406DS
+         ST    R1,0(,R4)          Chain new to old last        HRC406DS
+UPDLAST  DS    0H                                              HRC406DS
+         ST    R1,NUCLSTLN        New last line in pgm stack   HRC406DS

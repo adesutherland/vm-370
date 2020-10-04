@@ -41,40 +41,55 @@ rm -r io
 rm -r YATA-CMS
 rm YATA-CMS.zip
 
-# Load a standalone version of BREXX for MAINT to load mods
-# MNTREXX on MAINTs A Drive
-wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v0.9.7/BREXX.zip
-unzip BREXX.zip
-mkdir io
-cp BREXX/* io
-cd io
-# IPL
-herccontrol "ipl 141" -w "USER DSC LOGOFF AS AUTOLOG1"
-# LOGON MAINT AND READ TAPE
-herccontrol "/cp disc" -w "^VM/370 Online"
-herccontrol "/logon maint cpcms" -w "^CMS VERSION"
-herccontrol "/" -w "^Ready;"
-herccontrol "devinit 480 io/brexxbin.aws" -w "^HHCPN098I"
-herccontrol "/attach 480 to maint as 181" -w "TAPE 480 ATTACH"
-# Load and rename BREXX at MNTREXX just for MAINT on A drive
-herccontrol "/tape load brexx module a" -w "^Ready;"
-herccontrol "/copy brexx module a mntrexx module a (replace" -w "^Ready;"
-herccontrol "/erase brexx module a" -w "^Ready;"
-# Done with tape & logoff
-herccontrol "/detach 181" -w "^Ready;"
-herccontrol "/logoff" -w "^VM/370 Online"
-# SHUTDOWN
-herccontrol "/logon operator operator" -w "RECONNECTED AT"
-herccontrol "/shutdown" -w "^HHCCP011I"
-herccontrol "exit"
-# Clean up
-cd ..
-rm -r io
-rm -r BREXX
-rm BREXX.zip
+## Load a standalone version of BREXX for MAINT to load mods
+## MNTREXX on MAINTs A Drive
+#wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/f0020/BREXX.zip
+#unzip BREXX.zip
+#mkdir io
+#cp BREXX/* io
+#cd io
+## IPL
+#herccontrol "ipl 141" -w "USER DSC LOGOFF AS AUTOLOG1"
+## LOGON MAINT AND READ TAPE
+#herccontrol "/cp disc" -w "^VM/370 Online"
+#herccontrol "/logon maint cpcms" -w "^CMS VERSION"
+#herccontrol "/" -w "^Ready;"
+#herccontrol "devinit 480 io/brexxbin.aws" -w "^HHCPN098I"
+#herccontrol "/attach 480 to maint as 181" -w "TAPE 480 ATTACH"
+## Load and rename BREXX at MNTREXX just for MAINT on A drive
+#herccontrol "/tape load brexx module a" -w "^Ready;"
+#herccontrol "/copy brexx module a mntrexx module a (replace" -w "^Ready;"
+#herccontrol "/erase brexx module a" -w "^Ready;"
+## Done with tape & logoff
+#herccontrol "/detach 181" -w "^Ready;"
+#herccontrol "/logoff" -w "^VM/370 Online"
+## SHUTDOWN
+#herccontrol "/logon operator operator" -w "RECONNECTED AT"
+#herccontrol "/shutdown" -w "^HHCCP011I"
+#herccontrol "exit"
+## Clean up
+#cd ..
+#rm -r io
+#rm -r BREXX
+#rm BREXX.zip
 
 # Apply VM/370 Mods
 cd mods
+
+# CP mods
+
+cd hrc700dk
+(cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
+dos2unix *.sh
+chmod +x *.sh
+../iplmaint.sh
+./install.sh
+../buildcp.sh
+../shutdown.sh
+herccontrol "exit"
+cd ..
+
+# CMS mods / utilities
 
 cd hrc309ds
 (cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
@@ -139,13 +154,49 @@ chmod +x *.sh
 herccontrol "exit"
 cd ..
 
+cd execio
+(cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
+dos2unix *.sh
+chmod +x *.sh
+../iplmaint.sh
+./install.sh
+../regen.sh
+../shutdown.sh
+herccontrol "exit"
+cd ..
+
+cd hrc406ds
+(cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
+dos2unix *.sh
+chmod +x *.sh
+../iplmaint.sh
+./install.sh
+../buildnuc.sh
+../shutdown.sh
+../iplmaint.sh
+../regen.sh
+../shutdown.sh
+herccontrol "exit"
+cd ..
+
+cd hrc407ds
+(cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
+dos2unix *.sh
+chmod +x *.sh
+../iplmaint.sh
+./install.sh
+../regen.sh
+../shutdown.sh
+herccontrol "exit"
+cd ..
+
 cd ..
 
 # Now load packages
 
 # GCCLIB
 (cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
-wget -nv https://github.com/adesutherland/CMS-370-GCCLIB/releases/download/v0.7.19/GCCLIB.zip
+wget -nv https://github.com/adesutherland/CMS-370-GCCLIB/releases/download/v0.8.0/GCCLIB.zip
 unzip GCCLIB.zip
 chmod +x GCCLIB/cmsinstall.sh
 mkdir io
@@ -160,7 +211,7 @@ rm GCCLIB.zip
 
 # CMS BREXX
 (cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
-wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v0.9.7/BREXX.zip
+wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v0.9.8/BREXX.zip
 unzip BREXX.zip
 chmod +x BREXX/cmsinstall.sh
 mkdir io

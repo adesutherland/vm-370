@@ -25,7 +25,6 @@ HRC700DK V01 Support for DIAG00 to return timezone offset
 2. Recompile all new or updated assembler files. (In an unmodified
    Sixpack, the assembler source control file is DMKHRC CNTRL.)
 
-***   VMFASM DMKHVC DMKHRC
    VMFASM DMKHVD DMKHRC
 
 3. Rebuild the CP nucleus using VMFLOAD with the

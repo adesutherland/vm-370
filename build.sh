@@ -196,7 +196,7 @@ cd ..
 
 # GCCLIB
 (cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
-wget -nv https://github.com/adesutherland/CMS-370-GCCLIB/releases/download/f0042/GCCLIB.zip
+wget -nv https://github.com/adesutherland/CMS-370-GCCLIB/releases/download/v0.8.0/GCCLIB.zip
 unzip GCCLIB.zip
 chmod +x GCCLIB/cmsinstall.sh
 mkdir io
@@ -211,7 +211,7 @@ rm GCCLIB.zip
 
 # CMS BREXX
 (cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
-wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/f0020/BREXX.zip
+wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v0.9.8/BREXX.zip
 unzip BREXX.zip
 chmod +x BREXX/cmsinstall.sh
 mkdir io

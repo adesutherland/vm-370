@@ -8,7 +8,7 @@ The Docker images are here
 See the release tab for Dockerfile build source and the VM/370 DASD files.
 
 # History
-- latest -> 1.4.3
+- latest -> 1.4.24
 - Version 1.4.x has latest GCCLIB builds
 - Version 1.3.4 corresponds to Six Pack 1.3 Beta 3.
 

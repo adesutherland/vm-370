@@ -1,0 +1,2414 @@
+ TITLE 'EXECIO Implementation for VM/370'                               00010000
+*                                                                       00020000
+* >>--EXECIO--.-lines-.--.---DISKR---| Diskr Operands|---.--><          00030000
+*             '-*-----'  |                               |              00040000
+*                        |---CARD----| Card  Operands |--.              00050000
+*                        |                               |              00060000
+*                        |---CP------| CP    Operands |--.              00070000
+*                        |                               |              00080000
+*                        |---DISKW---| DISKR Operands |--.              00090000
+*                        |                               |              00100000
+*                        |---PUNCH---| PUNCH Operands |--.              00110000
+*                        |                               |              00120000
+*                        |---EMSG----| EMSG  Operands |--.              00130000
+*                        |                               |              00140000
+*                        '---PRINT---| PRINT Optrands |--'              00150000
+*                                                                       00160000
+* Diskr Operands:                                                       00170000
+*                                                                       00180000
+*            .-*--1----------------.                                    00190000
+* |--fn--ft--+---------------------+------------------------->          00200000
+*            |         .-1-------. |                                    00210000
+*            '-.-fm-.--+---------+-'                                    00220000
+*              '-*--'  '-linenum-'                                      00230000
+*                                                                       00240000
+* >--.----------------------------------------------.--------|          00250000
+*    |                                              |                   00260000
+*    '-(-----.-------.--| Input Options |-----.---.-'                   00270000
+*            '-FINIs-'                        '-)-'                     00280000
+*                                                                       00290000
+* Card Operands:                                                        00300000
+*                                                                       00310000
+* |--.-----------------------------------.-------------------|          00320000
+*    |                                   |                              00330000
+*    '-(-----| Input Options |-----.---.-'                              00340000
+*                                  '-)-'                                00350000
+*                                                                       00360000
+* CP Operands:                                                          00370000
+*                                                                       00380000
+* |--.-----------------------------.-------------------------|          00390000
+*    |                             |                                    00400000
+*    '-(--| CP Options |-----.---.-'                                    00410000
+*                            '-)-'                                      00420000
+*                                                                       00430000
+* CP Options:                                                           00440000
+*                                                                       00450000
+* |--| Input Options |--.---------------.--.-------------.---|          00460000
+*                       '-BUFfer-length-'  '-STring-text-'              00470000
+*                                                                       00480000
+* DISKW Operands:                                                       00490000
+*                                                                       00500000
+* |--fn--ft--.-fm-.--.-------------------------------.------->          00510000
+*            '-*--'  '-linenum--.------------------.-'                  00520000
+*                               | .-V-.            |                    00530000
+*                               '-+---+--.-------.-'                    00540000
+*                                 '-F-'  '-lrecl-'                      00550000
+*                                                                       00560000
+* >--.-----------------------------------------------.-------|          00570000
+*    |                                               |                  00580000
+*    '-(-----.-------.--| Output Options |-----.---.-'                  00590000
+*            '-FINIs-'                         '-)-'                    00600000
+*                                                                       00610000
+* PUNCH Operands:                                                       00620000
+*                                                                       00630000
+* |--.------------------------------------.------------------|          00640000
+*    |                                    |                             00650000
+*    '-(-----| Output Options |-----.---.-'                             00660000
+*                                   '-)-'                               00670000
+*                                                                       00680000
+* EMSG Operands:                                                        00690000
+*                                                                       00700000
+* |--.------------------------------------.--------|                    00710000
+*    |                                    |                             00720000
+*    '-(-----| Output Options |-----.---.-'                             00730000
+*                                   '-)-'                               00740000
+*                                                                       00750000
+* PRINT Operands:                                                       00760000
+*                                                                       00770000
+* |--.---------------------------------------------------.---|          00780000
+*    |                                                   |              00790000
+*    '-(--.--------------.--| Output Options |-----.---.-'              00800000
+*         '-CC--.-code-.-'                         '-)-'                00810000
+*               '-DATA-'                                                00820000
+*                                                                       00830000
+* Input Options:                                                        00840000
+*                                            .-Zone-1-*---.             00850000
+* |--.------------------------------------.--+------------+-->          00860000
+*    |-.-FInd--/chars/---.-.------------.-|  '-Zone-n1-n2-'             00870000
+*    | |-LOcate--/chars/-| |-LIFO-------| |                             00880000
+*    | '-Avoid--/chars/--' |-FIFO-------| |                             00890000
+*    |                     '-STEm--stem-' |                             00900000
+*    '-VAR--xxxx---------------------------'                            00910000
+*                                                                       00920000
+*              .-Margins--1--*---.                                      00930000
+* >--.------.--+-----------------+--.-------.--.--------.----|          00940000
+*    '-SKip-'  '-Margins--n1--n2-'  '-STRIP-'  '-NOTYPE-'               00950000
+*                                                                       00960000
+* Output Options:                                                       00970000
+*                                                                       00980000
+*    .-Margins--1--*---.                                                00990000
+* |--+-----------------+--.-------.--.--------.-------------->          01000000
+*    '-Margins--n1--n2-'  '-STRIP-'  '-NOTYPE-'                         01010000
+*                                                                       01020000
+*                                                                       01030000
+*    .-CAse--M-.                                                        01040000
+* >--+-------------.------------------.----------------------|          01050000
+*    '-CAse--U-'   |-STEm--stem-------|                                 01060000
+*                  |-VAR--xxxx--------|                                 01070000
+*                  '-STring--text-----'                                 01080000
+*                                                                       01090000
+EXECIO   CSECT                                                          01100000
+         USING NUCON,0                                                  01110000
+         STM   R14,R12,12(R13)                                          01120000
+         LR    R12,R15                                                  01130000
+         LA    R11,2048(,R12)                                           01140000
+         LA    R11,2048(,R11)                                           01150000
+         USING EXECIO,R12,R11     Set addressability                    01160000
+         LR    R2,R0              Incoming extended plist               01170000
+         LR    R3,R1              Incoming tokenized plist              01180000
+*                                                                       01190000
+         LA    R0,(WORKSIZE+8)/8                                        01200000
+         DMSFREE DWORDS=(0),TYPE=USER Allocate Work area                01210000
+         LR    R6,R1              Hold WORKAREA address                 01220000
+         LR    R0,R6                                                    01230000
+         LA    R1,WORKSIZE                                              01240000
+         SR    R5,R5                                                    01250000
+         MVCL  R0,R4              Zero out the WORKAREA                 01260000
+*                                                                       01270000
+         ST    R13,4(,R6)         Chain                                 01280000
+         ST    R6,8(,R13)            to                                 01290000
+         LR    R13,R6                  new                              01300000
+         USING WORKAREA,R13              savearea                       01310000
+*                                                                       01320000
+* Some calls use information from the extended plist                    01330000
+* We save 2 copies here. One is ASIS, one is Uppercased.                01340000
+*                                                                       01350000
+         LM    R4,R5,4(R2)        Load begargs,endargs                  01360000
+         SR    R5,R4                                                    01370000
+         ST    R5,EPLENGTH        Save length of command args           01380000
+         LTR   R5,R5                                                    01390000
+         BZ    EPLSET                                                   01400000
+*                                                                       01410000
+         LA    R6,EPLLOCAL        Assume short EPLIST                   01420000
+         C     R5,=A(80-1)        Unless too long                       01430000
+         BNH   EPLCOPY            Save copy in our DSA                  01440000
+         LA    R0,2+7(,R5)        Get storage for two                   01450000
+         AR    R0,R5                copies                              01460000
+         SRL   R0,3                   in doublewords                    01470000
+         DMSFREE DWORDS=(0),TYPE=USER Allocate Work area                01480000
+         LR    R6,R1                                                    01490000
+EPLCOPY  DS    0H                                                       01500000
+         ST    R6,EPLADDR                                               01510000
+*                                                                       01520000
+         MVI   0(R6),C' '         Blank out the area                    01530000
+         MVC   1(*-*,R6),0(R6)     for size of EPLIST                   01540000
+         EX    R5,*-6                plus one blank                     01550000
+*                                                                       01560000
+         BCTR  R5,0               Length - 1                            01570000
+         MVC   0(*-*,R6),0(R4)                                          01580000
+         EX    R5,*-6             Copy in arguments                     01590000
+*                                                                       01600000
+         LA    R6,1(R5,R6)        Skip over first copy                  01610000
+         MVC   0(*-*,R6),0(R4)    Make a second copy                    01620000
+         EX    R5,*-6             Copy in arguments                     01630000
+*                                                                       01640000
+         L     R6,EPLADDR         Back to first copy                    01650000
+         L     R15,NUCUPPER                                             01660000
+         B     *+4+6                                                    01670000
+         TR    0(*-*,R6),0(R15)   Uppercase 1st copy                    01680000
+         EX    R5,*-6                                                   01690000
+EPLSET   DS    0H                                                       01700000
+         MVC   EPLNXT,EPLADDR     Set start of EPLIST                   01710000
+         MVC   EPLLEFT,EPLENGTH   Set remaining bytes to scan           01720000
+*                                 EPLTOKEN has next parm                01730000
+*                                                                       01740000
+* Retrieve the number of lines                                          01750000
+*                                                                       01760000
+         LA    R4,=CL8'Lines'                                           01770000
+         BAL   R14,NXTTOKEN       Get the next token                    01780000
+         B     MISSING            Bif operand is missing                01790000
+*                                                                       01800000
+         L     R0,MAXWORD         Assume '*'                            01810000
+         CLC   EPLTOKEN(2),=C'* '                                       01820000
+         BE    SETLINES           Yes, set -1 for *                     01830000
+         LA    R1,EPLTOKEN        Here too                              01840000
+         BAL   R14,CVB            Convert lines to binary               01850000
+         B     INVLINES           Bif invalid number                    01860000
+SETLINES DS    0H                                                       01870000
+         ST    R0,LINES           Set the number of lines               01880000
+*                                                                       01890000
+* Check the operation call type                                         01900000
+*                                                                       01910000
+         LA    R4,=CL8'Device'                                          01920000
+         BAL   R14,NXTTOKEN       Get the next token                    01930000
+         B     MISSING            Bif operand is missing                01940000
+*                                                                       01950000
+         LA    R0,CTYPTBNE        Call type table # entries             01960000
+         LA    R15,CTYPTBL        First entry                           01970000
+ROUTINEL DS    0H                                                       01980000
+         CLC   0(8,R15),EPLTOKEN  Match found?                          01990000
+         BE    ROUTINEF           Yes, routine name found               02000000
+         LA    R15,CTYPTBEL(,R15) Step to next                          02010000
+         BCT   R0,ROUTINEL        Looking for routine name              02020000
+         B     INVPARM            Invalid Parameter                     02030000
+ROUTINEF DS    0H                 Go to the address specified           02040000
+         L     R15,8(,R15)                                              02050000
+         BR    R15                                                      02060000
+*                                                                       02070000
+*  Return to caller                                                     02080000
+*                                                                       02090000
+EXIT0    DS    0H                                                       02100000
+         SR    R15,R15                                                  02110000
+EXITRC   DS    0H                                                       02120000
+         LR    R5,R15             Hold the return code                  02130000
+         ICM   R0,B'1111',REXBUFFL Did we get a REXX buffer?            02140000
+         BZ    EXITRC2            Skip return if not                    02150000
+         SRL   R0,3               Bytes to dwords                       02160000
+         L     R1,REXBUFF         Get the address                       02170000
+         DMSFRET DWORDS=(0),LOC=(1)                                     02180000
+EXITRC2  DS   0H                                                        02190000
+         LR    R1,R13                                                   02200000
+         L     R13,4(,R13)                                              02210000
+         ST    R5,16(,R13)        Pass back the return code             02220000
+         LA    R0,(WORKSIZE+8)/8                                        02230000
+         DMSFRET DWORDS=(0),LOC=(1)                                     02240000
+         LM    R14,R12,12(R13)                                          02250000
+         BR    R14                                                      02260000
+ TITLE 'EXECIO: Handle activity type DISKR'                             02270000
+*------------------------------------------------------------*          02280000
+*                                                            *          02290000
+* DISKR  -     Read data from a minidisk file                *          02300000
+*                                                            *          02310000
+*------------------------------------------------------------*          02320000
+$DISKR   DS    0H                                                       02330000
+         MVI   CURROP,VDISKR      Set the current operation             02340000
+         LA    R5,EXFSCB          Build FSCB here                       02350000
+         USING FSCBD,R5                                                 02360000
+         XC    FSCBD(FSCBDLEN),FSCBD                                    02370000
+         MVC   FSCBFM,=CL2'* '    Default file mode is '*'              02380000
+         XC    NEXTREC,NEXTREC    Assume we will read the               02390000
+*                                   next record in the file             02400000
+         LA    R4,=CL8'Filename'                                        02410000
+         BAL   R14,NXTTOKEN       Get the next token                    02420000
+         B     MISSING            Bif operand is missing                02430000
+         MVC   FSCBFN,EPLTOKEN    Copy in filename                      02440000
+*                                                                       02450000
+         LA    R4,=CL8'Filetype'                                        02460000
+         BAL   R14,NXTTOKEN       Get the next token                    02470000
+         B     MISSING            Bif operand is missing                02480000
+         MVC   FSCBFT,EPLTOKEN    Copy in filetype                      02490000
+*                                                                       02500000
+         BAL   R14,NXTTOKEN       Get the '(' if present                02510000
+         B     $DISKR20           Bif no operands or options            02520000
+         CLI   EPLTOKEN,C'('      Start of options                      02530000
+         BE    $DISKR10           Yes go get them                       02540000
+         CLI   EPLTOKEN+2,C' '    Max length is 2                       02550000
+         BNE   INVPARM            Too long for filemode                 02560000
+         MVC   FSCBFM,EPLTOKEN    Copy in filemode                      02570000
+*                                                                       02580000
+         BAL   R14,NXTTOKEN       Get the '(' if present                02590000
+         B     $DISKR20           Bif no operands or options            02600000
+         CLI   EPLTOKEN,C'('      Start of options                      02610000
+         BE    $DISKR10           Yes go get them                       02620000
+*                                                                       02630000
+* Retrieve the line number                                              02640000
+*                                                                       02650000
+         LA    R1,EPLTOKEN        Here too                              02660000
+         BAL   R14,CVB            Convert lines to binary               02670000
+         B     INVLINES           Bif invalid number                    02680000
+         STH   R0,NEXTREC         Get this record number next           02690000
+*                                                                       02700000
+         BAL   R14,NXTTOKEN       Get the '(' if present                02710000
+         B     $DISKR20           Bif no operands or options            02720000
+         CLI   EPLTOKEN,C'('      Start of options                      02730000
+         BE    $DISKR10           Yes go get them                       02740000
+         B     INVPARM                                                  02750000
+$DISKR10 DS    0H                 Here to scan next option              02760000
+         BAL   R14,NXTTOKEN       Get the next option token             02770000
+         B     $DISKR20           Bif no operands or options            02780000
+         BAL   R14,OPTLKUP        Chk option entry from VDISKR          02790000
+*                                                                       02800000
+* Process the option entry in                                           02810000
+*                                                                       02820000
+         B     $DISKR10           Go look at next                       02830000
+*                                                                       02840000
+$DISKR20 DS    0H                 Here after option scan                02850000
+         FSSTATE FSCB=(R5)                                              02860000
+         LTR   R15,R15                                                  02870000
+         BZ    $DISKR30                                                 02880000
+         LR    R2,R15             Pass return code                      02890000
+         LA    R3,=CL8'FSSTATE'   Pass MACRO name                       02900000
+         B     INVRETCD           Tell caller about error               02910000
+$DISKR30 DS    0H                                                       02920000
+         MVC   EXFSTD(FSTDSIZE),0(R1)  Save copy of FSTD                02930000
+*        USING FSTD,R1                                                  02940000
+         LA    R0,L'BUFFER                                              02950000
+         L     R15,FSTLRECL-FSTD+EXFSTD Current file lrecl              02960000
+         CR    R15,R0                                                   02970000
+         BL    $DISKR40           Skip if record fits BUFFER            02980000
+         TM    OPTBITS3,OPVAR+OPSTEM Input from stem or var?            02990000
+         BZ    REC2LARG           Record too large for stack            03000000
+*                                 Need a bigger buffer                  03010000
+         LA    R0,7(,R15)                                               03020000
+         SRL   R0,3               Buffer size in dwords                 03030000
+         ST    R0,FILEBUFL                                              03040000
+         DMSFREE DWORDS=(0),TYPE=USER,ERR=NOSTORE                       03050000
+         ST    R1,FILEBUFA                                              03060000
+$DISKR40 DS    0H                                                       03070000
+*                                                                       03080000
+         L     R4,LINES           Number of records to read             03090000
+         SR    R3,R3              Records read so far                   03100000
+         TM    OPTBITS,OPFIND+OPLOCATE+OPAVOID Search wanted?           03110000
+         BNZ   $DISKRL2           Go perform search loop if so          03120000
+*                                                                       03130000
+* Read the requested number of records                                  03140000
+*                                                                       03150000
+$DISKRL1 DS    0H                                                       03160000
+         BAL   R14,INPUTDEV       Read a file record                    03170000
+         LTR   R15,R15                                                  03180000
+         BNZ   $DISKEOF           Handle End of file                    03190000
+         BAL   R14,MODIFY         Modify output                         03200000
+         BAL   R14,OUTPUT         Deliver to the calling EXEC           03210000
+         BCT   R4,$DISKRL1        Loop for all lines                    03220000
+         B     $DISKR70           Go handle end of count                03230000
+*                                                                       03240000
+* Read the requested number of records and search                       03250000
+*                                                                       03260000
+$DISKRL2 DS    0H                                                       03270000
+         BAL   R14,INPUTDEV       Read a file record                    03280000
+         LTR   R15,R15                                                  03290000
+         BNZ   $DISKEOF           Handle End of file                    03300000
+         LA    R3,1(,R3)          Count records read                    03310000
+         BAL   R14,SEARCH         Search output                         03320000
+         BZ    $DISKR50           Branch if match found                 03330000
+         BCT   R4,$DISKRL2        Loop for all lines                    03340000
+         B     $DISKR70           Go handle end of count                03350000
+$DISKR50 DS    0H                                                       03360000
+         TM    OPTBITS3,OPFIFO+OPLIFO Stack order specified?            03370000
+         BNZ   *+8                                                      03380000
+         OI    OPTBITS3,OPLIFO    If not searches stack LIFO            03390000
+*                                                                       03400000
+         BAL   R14,OUTPUT         Deliver record to caller              03410000
+*                                                                       03420000
+*        Deliver relative and absolute line numbers                     03430000
+*                                                                       03440000
+* Current item number only available with internal interface.           03450000
+* This program probably only works for VM/370.                          03460000
+*                                                                       03470000
+         SR    R0,R0              STart search at beginning             03480000
+         LA    R1,EXFSCB          Pass FSCB for our file                03490000
+         LR    R4,R13             Hold workarea pointer                 03500000
+         LA    R13,BUFFER         Save area for ACTLKP                  03510000
+         L     R15,AACTLKP        Active File Table lookup              03520000
+         BALR  R14,R15                                                  03530000
+         LR    R13,R4             Restore workarea pointer              03540000
+         LA    R4,99              In case lookup failed                 03550000
+         BNZ   $DISKR60           Should not fail, file active          03560000
+         USING AFTSECT,R1                                               03570000
+         LH    R4,AFTRP           Next Read Pointer                     03580000
+         BCTR  R4,0               Current Read Pointer                  03590000
+         DROP  R1                                                       03600000
+$DISKR60 DS    0H                                                       03610000
+*                                                                       03620000
+* Relative number to printable                                          03630000
+*                                                                       03640000
+         CVD   R3,DWORD           Convert binary to packed              03650000
+         MVC   BUFFER(L'STEMPAT),STEMPAT  Set pattern                   03660000
+         EDMK  BUFFER(L'STEMPAT),DWORD    EDIT with pattern             03670000
+*                                                                       03680000
+* Absolute number to printable                                          03690000
+*                                                                       03700000
+         CVD   R4,DWORD           Convert binary to packed              03710000
+         MVC   BUFFER+L'STEMPAT(L'STEMPAT),STEMPAT Set pattern          03720000
+         EDMK  BUFFER+L'STEMPAT(L'STEMPAT),DWORD EDIT                   03730000
+*                                                                       03740000
+* Set the two numbers in a line and output to the caller                03750000
+*                                                                       03760000
+         MVC   BUFFER(10),BUFFER+L'STEMPAT-10                           03770000
+         MVI   BUFFER+10,C' '                                           03780000
+         MVC   BUFFER+11(10),BUFFER+L'STEMPAT+L'STEMPAT-10              03790000
+*                                                                       03800000
+         LA    R0,21                                                    03810000
+         LA    R1,BUFFER                                                03820000
+         BAL   R14,OUTPUT         Deliver to the calling EXEC           03830000
+*                                                                       03840000
+$DISKR70 DS    0H                                                       03850000
+         SR    R3,R3              Set RC = 0                            03860000
+         B     $DISKRXT                                                 03870000
+$DISKEOF DS    0H                 Enter here at End of file             03880000
+         LA    R3,2               Not found RC                          03890000
+         B     $DISKRXT           Go free buffer and exit               03900000
+$DISKRXT DS    0H                 Here with RC in R15                   03910000
+         TM    OPTBITS,OPFINIS    FINIS specified                       03920000
+         BZ    $DISKR80           If not leave file open                03930000
+         FSCLOSE FSCB=(R5)        Close the file                        03940000
+         DROP  R5                                                       03950000
+$DISKR80 DS    0H                                                       03960000
+         ICM   R1,B'1111',FILEBUFA  Allocated buffer address            03970000
+         BZ    $DISKR90           Skip if we did not allocate           03980000
+         L     R0,FILEBUFL        Size in dwords                        03990000
+         DMSFRET DWORDS=(0),LOC=(1)                                     04000000
+$DISKR90 DS    0H                                                       04010000
+         LR    R15,R3                                                   04020000
+         B     EXITRC                                                   04030000
+ TITLE 'EXECIO: Handle activity type CARD'                              04040000
+*------------------------------------------------------------*          04050000
+*                                                            *          04060000
+* CARD   -     Read data from the virtual reader             *          04070000
+*                                                            *          04080000
+*------------------------------------------------------------*          04090000
+$CARD    DS    0H                                                       04100000
+         MVI   CURROP,VCARD       Set the current operation             04110000
+         BAL   R14,NXTTOKEN       Get the next token                    04120000
+         B     $CARD20            Bif all processed                     04130000
+*                                                                       04140000
+         CLI   EPLTOKEN,C'('      Start of options                      04150000
+         BNE   INVPARM                                                  04160000
+$CARD20  DS    0H                 Here to scan next option              04170000
+         BAL   R14,NXTTOKEN       Get the next token                    04180000
+         B     $CARD40            Bif all processed                     04190000
+*                                                                       04200000
+         BAL   R14,OPTLKUP        Chk option entry from VCARD           04210000
+         B     $CARD20            Go look at next                       04220000
+*                                                                       04230000
+$CARD40  DS    0H                 Here after option scan                04240000
+         L     R4,LINES           Number of records to read             04250000
+         SR    R3,R3              Records read so far                   04260000
+         TM    OPTBITS,OPFIND+OPLOCATE+OPAVOID Search wanted?           04270000
+         BNZ   $CARDL2            Go perform search loop if so          04280000
+*                                                                       04290000
+* Read the requested number of records                                  04300000
+*                                                                       04310000
+$CARDL1  DS    0H                                                       04320000
+         BAL   R14,INPUTDEV       Read a card image                     04330000
+         LTR   R15,R15                                                  04340000
+         BNZ   $CARD80            Handle End of file                    04350000
+         BAL   R14,MODIFY         Modify output                         04360000
+         BAL   R14,OUTPUT         Deliver to the calling EXEC           04370000
+         BCT   R4,$CARDL1         Loop for all lines                    04380000
+         B     $CARD80                                                  04390000
+*                                                                       04400000
+* Read the requested number of records and search                       04410000
+*                                                                       04420000
+$CARDL2  DS    0H                                                       04430000
+         BAL   R14,INPUTDEV       Read a card image                     04440000
+         LTR   R15,R15                                                  04450000
+         BNZ   $CARDEOF           Handle End of file                    04460000
+         LA    R3,1(,R3)          Count records read                    04470000
+         BAL   R14,SEARCH         Search output                         04480000
+         BZ    $CARD60            Branch if match found                 04490000
+         BCT   R4,$CARDL2         Loop for all lines                    04500000
+$CARDEOF DS    0H                 Enter here at EOF                     04510000
+         LA    R15,3              Not found RC                          04520000
+         B     EXITRC                                                   04530000
+$CARD60  DS    0H                                                       04540000
+         TM    OPTBITS3,OPFIFO+OPLIFO Stack order specified?            04550000
+         BNZ   *+8                                                      04560000
+         OI    OPTBITS3,OPLIFO    If not searches stack LIFO            04570000
+*                                                                       04580000
+         BAL   R14,OUTPUT         Deliver to the calling EXEC           04590000
+*                                 Deliver relative line number          04600000
+         CVD   R3,DWORD           Convert binary to packed              04610000
+         MVC   BUFFER(L'STEMPAT),STEMPAT  Set pattern                   04620000
+         EDMK  BUFFER(L'STEMPAT),DWORD    EDIT with pattern             04630000
+         LA    R0,10                                                    04640000
+         LA    R1,BUFFER+6                                              04650000
+         BAL   R14,OUTPUT         Deliver to the calling EXEC           04660000
+*                                                                       04670000
+$CARD80  DS    0H                 Here after option scan                04680000
+         B     EXIT0                                                    04690000
+ TITLE 'EXECIO: Handle activity type CP'                                04700000
+*------------------------------------------------------------*          04710000
+*                                                            *          04720000
+* CP     -     Issue a CP command and retrieve the response  *          04730000
+*                                                            *          04740000
+*------------------------------------------------------------*          04750000
+$CP      DS    0H                                                       04760000
+         MVI   CURROP,VCP         Set the current operation             04770000
+         MVC   CPBUFFL,=F'8192'   Set default response length           04780000
+*                                                                       04790000
+         BAL   R14,NXTTOKEN       Get the next token                    04800000
+         B     $CP040             Bif no options                        04810000
+*                                                                       04820000
+         CLI   EPLTOKEN,C'('      Start of options                      04830000
+         BNE   INVPARM                                                  04840000
+$CP020   DS    0H                 Here to scan next option              04850000
+         BAL   R14,NXTTOKEN       Get the next token                    04860000
+         B     $CP040             Bif all processed                     04870000
+*                                                                       04880000
+         BAL   R14,OPTLKUP        Chk option entry from VCP             04890000
+         B     $CP020             Go look at next                       04900000
+*                                                                       04910000
+$CP040   DS    0H                 Here after option scan                04920000
+*                                                                       04930000
+         BAL   R14,INPUT          Fetch input line                      04940000
+*                                                                       04950000
+         LTR   R5,R0              Length of the cmd                     04960000
+         BZ    $CP080             Null record is end of file            04970000
+         LR    R4,R1              Address of cmd                        04980000
+*                                                                       04990000
+         LA    R0,7                                                     05000000
+         A     R0,CPBUFFL                                               05010000
+         SRL   R0,3                                                     05020000
+         DMSFREE DWORDS=(0),TYPE=USER Allocate Resp area                05030000
+         ST    R1,CPBUFF                                                05040000
+*                                                                       05050000
+         LR    R0,R4              Set command line address              05060000
+         LR    R2,R5              command line length                   05070000
+         ICM   R2,B'1000',=X'40'  Return response to buffer             05080000
+*                                                                       05090000
+         L     R1,CPBUFF          Response buffer address               05100000
+         L     R3,CPBUFFL         Response buffer length                05110000
+         DIAG  R0,R2,X'08'                                              05120000
+         LA    R15,1                                                    05130000
+         BNZ   EXITRC             Bif response will not fit             05140000
+         ST    R1,CPRESPNX        CP response next line addr            05150000
+         ST    R3,CPRESPRL        CP response remaining length          05160000
+*                                                                       05170000
+         L     R4,LINES           Number of records to read             05180000
+         TM    OPTBITS,OPFIND+OPLOCATE+OPAVOID Search wanted?           05190000
+         BNZ   $CPL2              Go perform search loop if so          05200000
+*                                                                       05210000
+* Read the requested number of records                                  05220000
+*                                                                       05230000
+$CPL1    DS    0H                                                       05240000
+         BAL   R14,INPUTDEV       Read next CP response line            05250000
+         LTR   R15,R15                                                  05260000
+         BNZ   $CP080             Handle End of file                    05270000
+         BAL   R14,MODIFY         Modify output                         05280000
+         BAL   R14,OUTPUT         Deliver to the calling EXEC           05290000
+         BCT   R4,$CPL1           Loop for all lines                    05300000
+         B     $CP080             Almost done                           05310000
+*                                                                       05320000
+* Read the requested number of records and search                       05330000
+*                                                                       05340000
+$CPL2    DS    0H                                                       05350000
+         BAL   R14,INPUTDEV       Read next CP response line            05360000
+         LTR   R15,R15                                                  05370000
+         BNZ   $CPEOF             Handle End of file                    05380000
+         LA    R3,1(,R3)          Count records read                    05390000
+         BAL   R14,SEARCH         Search output                         05400000
+         BZ    $CP060             Branch if match found                 05410000
+         BCT   R4,$CPL2           Loop for all lines                    05420000
+$CPEOF   DS    0H                                                       05430000
+         BAL   R14,$CPFRET        Release the response buffer           05440000
+         LA    R15,3              Not found RC                          05450000
+         B     EXITRC                                                   05460000
+$CP060   DS    0H                 Here after option scan                05470000
+         TM    OPTBITS3,OPFIFO+OPLIFO Stack order specified?            05480000
+         BNZ   *+8                                                      05490000
+         OI    OPTBITS3,OPLIFO    If not searches stack LIFO            05500000
+*                                                                       05510000
+         BAL   R14,OUTPUT         Deliver to the calling EXEC           05520000
+*                                 Deliver relative line number          05530000
+         CVD   R3,DWORD           Convert binary to packed              05540000
+         MVC   BUFFER(L'STEMPAT),STEMPAT  Set pattern                   05550000
+         EDMK  BUFFER(L'STEMPAT),DWORD    EDIT with pattern             05560000
+         LA    R0,10                                                    05570000
+         LA    R1,BUFFER+6                                              05580000
+         BAL   R14,OUTPUT         Deliver to the calling EXEC           05590000
+$CP080   DS    0H                                                       05600000
+         B     EXIT0                                                    05610000
+*                                                                       05620000
+$CPFRET  DS    0H                                                       05630000
+         STM   R14,R1,SAVEAREA                                          05640000
+         A     R0,CPBUFFL                                               05650000
+         SRL   R0,3                                                     05660000
+         L     R1,CPBUFF                                                05670000
+         DMSFRET DWORDS=(0),LOC=(1) Release Resp area                   05680000
+         LM    R14,R1,SAVEAREA                                          05690000
+         BR    R14                                                      05700000
+ TITLE 'EXECIO: Handle activity type DISKW'                             05710000
+*------------------------------------------------------------*          05720000
+*                                                            *          05730000
+* DISKW  -     Write data to minidisk file                   *          05740000
+*                                                            *          05750000
+*------------------------------------------------------------*          05760000
+$DISKW   DS    0H                                                       05770000
+         MVI   CURROP,VDISKW      Set the current operation             05780000
+         LA    R5,EXFSCB          Build FSCB here                       05790000
+         USING FSCBD,R5                                                 05800000
+         XC    FSCBD(FSCBDLEN),FSCBD                                    05810000
+         MVC   FSCBITNO,=H'1'     Default record number is 1            05820000
+         XC    NEXTREC,NEXTREC    Assume we will write the              05830000
+*                                   next record in the file             05840000
+         LA    R4,=CL8'Filename'                                        05850000
+         BAL   R14,NXTTOKEN       Get the next token                    05860000
+         B     MISSING                                                  05870000
+         MVC   FSCBFN,EPLTOKEN    Copy in filename                      05880000
+*                                                                       05890000
+         LA    R4,=CL8'Filetype'                                        05900000
+         BAL   R14,NXTTOKEN       Get the next token                    05910000
+         B     MISSING                                                  05920000
+         MVC   FSCBFT,EPLTOKEN    Copy in filetype                      05930000
+*                                                                       05940000
+         LA    R4,=CL8'Filemode'                                        05950000
+         BAL   R14,NXTTOKEN       Get the next token                    05960000
+         B     MISSING                                                  05970000
+         CLI   EPLTOKEN+2,C' '    Max length is 2                       05980000
+         BNE   INVPARM            Too long for filemode                 05990000
+         MVC   FSCBFM,EPLTOKEN    Copy in filemode                      06000000
+*                                                                       06010000
+         FSSTATE FSCB=(R5)        Does file exist?                      06020000
+         LTR   R15,R15                                                  06030000
+         BNZ   $DISKW01           Skip if not                           06040000
+         MVC   EXFSTD(FSTDSIZE),0(R1)  Save copy of FSTD                06050000
+*        USING FSTD,R1                                                  06060000
+         LA    R0,L'BUFFER                                              06070000
+         L     R15,FSTLRECL-FSTD+EXFSTD Current file lrecl              06080000
+         ST    R15,FILERECL       Set LRECL                             06090000
+         ST    R15,FSCBSIZE       Here too                              06100000
+         MVC   FSCBFV(1),FSTRECFM-FSTD+EXFSTD Record format             06110000
+         MVI   FSCBFV+1,C' '                                            06120000
+         B     $DISKW02           Skip                                  06130000
+$DISKW01 DS    0H                                                       06140000
+*                                                                       06150000
+* Here when file does not exist                                         06160000
+*                                                                       06170000
+         MVC   FSCBFV,=CL2'V '    Default record format                 06180000
+         MVC   FSCBSIZE,=F'80'    Default record length is 80           06190000
+$DISKW02 DS    0H                                                       06200000
+*                                                                       06210000
+         BAL   R14,NXTTOKEN       Get the next token                    06220000
+         B     $DISKW30           Bif no operands or options            06230000
+         CLI   EPLTOKEN,C'('      Start of options                      06240000
+         BE    $DISKW20           Yes go get them                       06250000
+*                                                                       06260000
+* Retrieve the line number                                              06270000
+*                                                                       06280000
+         LA    R1,EPLTOKEN        Here too                              06290000
+         BAL   R14,CVB            Convert lines to binary               06300000
+         B     INVLINES           Bif invalid number                    06310000
+         STH   R0,NEXTREC         Put this record number next           06320000
+*                                                                       06330000
+         BAL   R14,NXTTOKEN       Get the next token                    06340000
+         B     $DISKW30           Bif no operands or options            06350000
+         CLI   EPLTOKEN,C'('      Start of options                      06360000
+         BE    $DISKW20           Yes go get them                       06370000
+*                                                                       06380000
+* Retrieve the record format                                            06390000
+*                                                                       06400000
+         LA    R4,=CL8'RECFM'                                           06410000
+         CLI   EPLTOKEN+1,C' '    Max length is 1                       06420000
+         BNE   INVPARM            Too long for recfm                    06430000
+         CLI   EPLTOKEN,C'F'      Fixed?                                06440000
+         BE    $DISKW10                                                 06450000
+         CLI   EPLTOKEN,C'V'      Variable                              06460000
+         BNE   INVPARM            Bad recfm value                       06470000
+$DISKW10 DS    0H                                                       06480000
+         MVC   FSCBFV,EPLTOKEN                                          06490000
+*                                                                       06500000
+         BAL   R14,NXTTOKEN       Get the next token                    06510000
+         B     $DISKW30           Bif no operands or options            06520000
+         CLI   EPLTOKEN,C'('      Start of options                      06530000
+         BE    $DISKW20           Yes go get them                       06540000
+*                                                                       06550000
+* Retrieve the record length                                            06560000
+*                                                                       06570000
+         LA    R1,EPLTOKEN        Here too                              06580000
+         BAL   R14,CVB            Convert lines to binary               06590000
+         B     INVLRECL           Bif invalid lrecl                     06600000
+         ST    R0,FILERECL        Save the output LRECL                 06610000
+*                                                                       06620000
+         BAL   R14,NXTTOKEN       Get the next token                    06630000
+         B     $DISKW30           Bif no operands or options            06640000
+         CLI   EPLTOKEN,C'('      Start of options                      06650000
+         BNE   INVPARM                                                  06660000
+*                                                                       06670000
+* Process command options                                               06680000
+*                                                                       06690000
+$DISKW20 DS    0H                 Here to start option scan             06700000
+         BAL   R14,NXTTOKEN       Get the next token                    06710000
+         B     $DISKW30              Bif all processed                  06720000
+*                                                                       06730000
+         BAL   R14,OPTLKUP        Chk option entry from VDISKW          06740000
+         B     $DISKW20           Go look at next                       06750000
+*                                                                       06760000
+$DISKW30 DS    0H                 Here after option scan                06770000
+         TM    OPTBITS3,OPVAR+OPSTEM Input from stem or var?            06780000
+         BZ    $DISKW40           No special buffer needed              06790000
+         LA    R0,L'BUFFER        Default buffer size                   06800000
+         L     R1,FILERECL        Get the output LRECL                  06810000
+         CR    R1,R0              Is default buffer OK?                 06820000
+         BNH   $DISKW40           Bif default <= LRECL                  06830000
+*                                                                       06840000
+         LA    R0,7(,R1)          Round up                              06850000
+         SRL   R0,3                 to LRECL doublewords                06860000
+         DMSFREE DWORDS=(0),TYPE=USER Allocate Work area                06870000
+         SLL   R0,3               Dwords to Bytes                       06880000
+         ST    R0,REXBUFFL                                              06890000
+         ST    R1,REXBUFF                                               06900000
+$DISKW40 DS    0H                 Here when buffer ready                06910000
+         L     R4,LINES                                                 06920000
+$DISKW50 DS    0H                                                       06930000
+*                                                                       06940000
+         BAL   R14,INPUT          Fetch input line                      06950000
+         LTR   R0,R0                                                    06960000
+         BZ    $DISKW70           Null record is end of file            06970000
+         BAL   R14,MODIFY         Modify output                         06980000
+*                                                                       06990000
+         LR    R3,R0              Length of the line                    07000000
+         LR    R2,R1              Address of line                       07010000
+         LH    R6,NEXTREC         Possible next record number           07020000
+*                                    to write (or 0 to write            07030000
+*                                    the record after the last          07040000
+*                                    record we wrote)                   07050000
+$DISKW55 DS    0H                                                       07060000
+         FSWRITE FSCB=(R5),BUFFER=(R2),BSIZE=(R3),RECNO=(R6)            07070000
+         LTR   R15,R15                                                  07080000
+         BZ    $DISKW65                                                 07090000
+         C     R15,=F'9'          Already OPEN for READ?                07100000
+         BNE   $DISKW60           Skip if not                           07110000
+         FSCLOSE FSCB=(R5)        Just close it                         07120000
+         B     $DISKW55                                                 07130000
+$DISKW60 DS    0H                                                       07140000
+         LR    R2,R15             Pass return code                      07150000
+         LA    R3,=CL8'FSWRITE'   Pass MACRO name                       07160000
+         B     INVRETCD           Tell caller about error               07170000
+$DISKW65 DS    0H                                                       07180000
+         BCT   R4,$DISKW50        Loop for all lines                    07190000
+$DISKW70 DS    0H                                                       07200000
+         SR    R15,R15            RC=0                                  07210000
+         TM    OPTBITS,OPFINIS    FINIS specified                       07220000
+         BZ    $DISKW80           If not leave file open                07230000
+*                                                                       07240000
+         FSCLOSE FSCB=(R5)        Close the file                        07250000
+         DROP  R5                                                       07260000
+         SR    R15,R15            RC=0                                  07270000
+$DISKW80 DS    0H                 Here with RC in R15                   07280000
+         LR    R3,R15                                                   07290000
+         ICM   R1,B'1111',FILEBUFA  Allocated buffer address            07300000
+         BZ    $DISKW90           Skip if we did not allocate           07310000
+         L     R0,FILEBUFL        Size in dwords                        07320000
+         DMSFRET DWORDS=(0),LOC=(1)                                     07330000
+$DISKW90 DS    0H                                                       07340000
+         LR    R15,R3                                                   07350000
+         B     EXITRC                                                   07360000
+ TITLE 'EXECIO: Handle activity type PUNCH'                             07370000
+*------------------------------------------------------------*          07380000
+*                                                            *          07390000
+* PUNCH  -     Send data to the virtual punch                *          07400000
+*                                                            *          07410000
+*------------------------------------------------------------*          07420000
+$PUNCH   DS    0H                                                       07430000
+         MVI   CURROP,VPUNCH      Set the current operation             07440000
+         BAL   R14,NXTTOKEN       Get the next token                    07450000
+         B     $PUNCHNO           Bif no options                        07460000
+*                                                                       07470000
+         CLI   EPLTOKEN,C'('      Start of options                      07480000
+         BNE   INVPARM                                                  07490000
+$PUNCHOP DS    0H                 Here to start option scan             07500000
+         BAL   R14,NXTTOKEN       Get the next token                    07510000
+         B     $PUNCHNO           Bif no options                        07520000
+*                                                                       07530000
+         BAL   R14,OPTLKUP        Chk option entry from VPUNCH          07540000
+         B     $PUNCHOP           Go look at next                       07550000
+*                                                                       07560000
+$PUNCHNO DS    0H                 Here after option scan                07570000
+         L     R4,LINES                                                 07580000
+$PUNCHLP DS    0H                                                       07590000
+*                                                                       07600000
+         BAL   R14,INPUT          Fetch input line                      07610000
+         LTR   R0,R0                                                    07620000
+         BZ    $PUNCHND           Null record is end of file            07630000
+         BAL   R14,MODIFY         Modify output                         07640000
+*                                                                       07650000
+         LR    R3,R0              Length of the line                    07660000
+         LR    R2,R1              Address of line                       07670000
+         MVI   BUFFER,C' '                                              07680000
+         MVC   BUFFER+1(79),BUFFER Make 80 bytes of blanks              07690000
+         CH    R3,*+10            If record > 80                        07700000
+         BNH   *+8                   use 80                             07710000
+         LA    R3,80                                                    07720000
+*                                                                       07730000
+         BCTR  R3,0                                                     07740000
+         MVC   BUFFER(*-*),0(R2)  Make 80 byte record                   07750000
+         LA    R2,BUFFER                                                07760000
+         PUNCHC (R2)              Punch it, Mr. Sulu                    07770000
+         LTR   R15,R15                                                  07780000
+         BZ    $PUNCHOK                                                 07790000
+         LR    R2,R15             Pass return code                      07800000
+         LA    R3,=CL8'PUNCHC'    Pass MACRO name                       07810000
+         B     INVRETCD           Tell caller about error               07820000
+$PUNCHOK DS    0H                                                       07830000
+         BCT   R4,$PUNCHLP        Loop for all lines                    07840000
+*                                                                       07850000
+$PUNCHND DS    0H                                                       07860000
+         B     EXIT0                                                    07870000
+ TITLE 'EXECIO: Handle activity type EMSG'                              07880000
+*------------------------------------------------------------*          07890000
+*                                                            *          07900000
+* EMSG   -     Edit message                                  *          07910000
+*                                                            *          07920000
+*------------------------------------------------------------*          07930000
+$EMSG    DS    0H                                                       07940000
+         MVI   CURROP,VEMSG       Set the current operation             07950000
+         BAL   R14,NXTTOKEN       Get the next token                    07960000
+         B     $EMSGNO            Bif no options                        07970000
+         CLI   EPLTOKEN,C'('      Start of options                      07980000
+         BNE   INVPARM                                                  07990000
+$EMSGOP  DS    0H                 Here to start option scan             08000000
+         BAL   R14,NXTTOKEN       Get the next token                    08010000
+         B     $EMSGNO            Bif no options                        08020000
+*                                                                       08030000
+         BAL   R14,OPTLKUP        Chk option entry from VEMSG           08040000
+         B     $EMSGOP            Go look at next                       08050000
+*                                                                       08060000
+$EMSGNO  DS    0H                 Here after option scan                08070000
+*                                                                       08080000
+         BAL   R14,INPUT          Fetch input line                      08090000
+         LTR   R0,R0                                                    08100000
+         BZ    $EMSGEND           Null record is end of file            08110000
+         BAL   R14,MODIFY         Modify output                         08120000
+*                                                                       08130000
+         MVC   LINEDITL(LINEDISZ),LINEDITP Set pattern                  08140000
+         MVI   BUFFER,255         Set buffer size in byte 1             08150000
+         LINEDIT TEXTA=(R3),DOT=NO,DISP=ERRMSG,                        *08160000
+               MF=(E,LINEDITL)                                          08170000
+$EMSGEND DS    0H                 Here after option scan                08180000
+         B     EXIT0                                                    08190000
+ TITLE 'EXECIO: Handle activity type PRINT'                             08200000
+*------------------------------------------------------------*          08210000
+*                                                            *          08220000
+* PRINT  -     Send data to the virtual printer              *          08230000
+*                                                            *          08240000
+*------------------------------------------------------------*          08250000
+$PRINT   DS    0H                                                       08260000
+         MVI   CC,C' '            Set the default CC value              08270000
+         BAL   R14,NXTTOKEN       Get the next token                    08280000
+         B     $PRINTNO           Bif no options                        08290000
+*                                                                       08300000
+         CLI   EPLTOKEN,C'('      Start of options                      08310000
+         BNE   INVPARM                                                  08320000
+$PRINTOP DS    0H                 Here to start option scan             08330000
+         BAL   R14,NXTTOKEN       Get the next token                    08340000
+         B     $PRINTNO           Bif no options                        08350000
+*                                                                       08360000
+         BAL   R14,OPTLKUP        Chk option entry from VPRINT          08370000
+         DC    AL1(VPRINT,0,0,0)                                        08380000
+         B     $PRINTOP           Go look at next                       08390000
+*                                                                       08400000
+$PRINTNO DS    0H                 Here after option scan                08410000
+         L     R4,LINES                                                 08420000
+$PRINTLP DS    0H                                                       08430000
+*                                                                       08440000
+         BAL   R14,INPUT          Fetch input line                      08450000
+         LTR   R0,R0                                                    08460000
+         BZ    $PRINTND           Null record is end of file            08470000
+         BAL   R14,MODIFY         Modify output                         08480000
+*                                                                       08490000
+         LR    R3,R0              Length of the line                    08500000
+         LR    R2,R1              Address of line                       08510000
+         PRINTL (R2),(R3)                                               08520000
+         LTR   R15,R15                                                  08530000
+         BZ    $PRINTOK                                                 08540000
+         LR    R2,R15             Pass return code                      08550000
+         LA    R3,=CL8'PRINTL'    Pass MACRO name                       08560000
+         B     INVRETCD           Tell caller about error               08570000
+$PRINTOK DS    0H                                                       08580000
+         BCT   R4,$PRINTLP        Loop for all lines                    08590000
+*                                                                       08600000
+$PRINTND DS    0H                                                       08610000
+         B     EXIT0                                                    08620000
+ TITLE 'EXECIO: Retrieve input from caller'                             08630000
+*------------------------------------------------------------*          08640000
+*                                                            *          08650000
+* Retrieve incoming information from the calling EXEC        *          08660000
+*                                                            *          08670000
+*------------------------------------------------------------*          08680000
+INPUT    DS    0H                                                       08690000
+         STM   R14,R5,SAVEAREA                                          08700000
+         USING SHVBLOCK,R5                                              08710000
+*                                                                       08720000
+* Retrieve input from a REXX variable                                   08730000
+*                                                                       08740000
+         TM    OPTBITS3,OPVAR     REXX Variable input                   08750000
+         BZ    INPNV              Skip if not                           08760000
+*                                 Is option used for input?             08770000
+         TM    CURROP,VOUT        Option used as output by              08780000
+*                                    an input operator?                 08790000
+         BZ    INPNV              Skip if not                           08800000
+*                                                                       08810000
+         L     R1,VARNAMEA        REXX variable name address            08820000
+         L     R0,VARNAMEL        REXX variable name length             08830000
+         BAL   R14,GETREXXV       Get the variable value                08840000
+*              R1                 REXX variable value address           08850000
+*              R0                 REXX variable value length            08860000
+         B     INPUTRET                                                 08870000
+INPNV    DS    0H                                                       08880000
+*                                                                       08890000
+* Retrieve input from a REXX stem                                       08900000
+*                                                                       08910000
+         TM    OPTBITS3,OPSTEM    REXX STEM input                       08920000
+         BZ    INPNSTEM           Skip if not                           08930000
+*                                 Is option used for input?             08940000
+         TM    CURROP,VOUT        Option used as output by              08950000
+*                                    an input operator?                 08960000
+         BZ    INPNSTEM           Skip if not                           08970000
+*                                                                       08980000
+* Retrieve max elements in stem count if first time through             08990000
+*                                                                       09000000
+         ICM   R1,B'1111',STEMMAXI Maximum index for stem               09010000
+         BNZ   INPSHAV0           Bif it is set                         09020000
+*                                                                       09030000
+         SR    R0,R0              Build the                             09040000
+         BAL   R14,STEMNBLD             .0 stemname                     09050000
+         MVI   BUFFER,C' '                                              09060000
+         MVC   BUFFER+1(L'BUFFER-1),BUFFER  Blank buffer                09070000
+         L     R0,STEMNAML        Length and                            09080000
+         LA    R1,STEMNAME           address of xxx.0 name              09090000
+*                                                                       09100000
+*              R1                 REXX variable name address            09110000
+*              R0                 REXX variable name length             09120000
+         BAL   R14,GETREXXV       Get the variable value                09130000
+*              R1                 REXX variable value address           09140000
+*              R0                 REXX variable value length            09150000
+         BAL   R14,CVB                                                  09160000
+         B     INVOPTV            Bif invalid number                    09170000
+         ST    R0,STEMMAXI        Set xxx.0 value here                  09180000
+         LA    R1,1                                                     09190000
+         ST    R1,STEMNEXT        Next xxx.n value to fetch             09200000
+INPSHAV0 DS    0H                                                       09210000
+*                                                                       09220000
+         L     R0,STEMNEXT        R0 = .n to build                      09230000
+         C     R0,STEMMAXI        Is n > stem.0?                        09240000
+         BNH   INPSGETN           If not, get next element              09250000
+         SR    R0,R0                                                    09260000
+         B     INPUTRET           Send back EOF indicator               09270000
+INPSGETN DS    0H                                                       09280000
+         BAL   R14,STEMNBLD       Build the .n stemname                 09290000
+         L     R0,STEMNAML        Length and                            09300000
+         LA    R1,STEMNAME           address of xxx.n name              09310000
+*              R1                 REXX variable name address            09320000
+*              R0                 REXX variable name length             09330000
+         BAL   R14,GETREXXV       Get the variable value                09340000
+*              R1                 REXX variable value address           09350000
+*              R0                 REXX variable value length            09360000
+         LA    R14,1              Increment the .n                      09370000
+         A     R14,STEMNEXT         value for next iteration            09380000
+         ST    R14,STEMNEXT                                             09390000
+         B     INPUTRET                                                 09400000
+INPNSTEM DS    0H                                                       09410000
+*                                                                       09420000
+* Retrieve input from the STRING option                                 09430000
+*                                                                       09440000
+         TM    OPTBITS3,OPSTRING  STRING input                          09450000
+         BZ    INPNSTR            Skip if not                           09460000
+         L     R1,STRINGBF        Set upper case buffer addr            09470000
+         L     R0,STRINGBL        Set length                            09480000
+         B     INPUTRET                                                 09490000
+INPNSTR  DS    0H                                                       09500000
+*                                                                       09510000
+* Retrieve input from the stack                                         09520000
+*                                                                       09530000
+*                                                                       09540000
+         BAL   R14,PULL           Pull next line from stack             09550000
+*                                 R1 -> string, R0 = length             09560000
+INPUTRET DS    0H                                                       09570000
+*                                 Return  R15 = return code             09580000
+         L     R14,SAVEAREA                 0 = input length            09590000
+         LM    R2,R5,SAVEAREA+16            1 = input address           09600000
+         BR    R14                Input data is ready                   09610000
+         DROP  R5                                                       09620000
+ TITLE 'EXECIO: Retrieve input from a device or CP response'            09630000
+*------------------------------------------------------------*          09640000
+*                                                            *          09650000
+* Retrieve incoming information from input device or         *          09660000
+*        the CP command response buffer                      *          09670000
+*                                                            *          09680000
+*------------------------------------------------------------*          09690000
+INPUTDEV DS    0H                                                       09700000
+         STM   R14,R5,SAVEAREA                                          09710000
+*                                                                       09720000
+* Fetch input line from a file                                          09730000
+*                                                                       09740000
+         TM    CURROP,VDISKR      From file?                            09750000
+         BZ    INPUTD2            No, try next                          09760000
+         LA    R5,EXFSCB          Build FSCB here                       09770000
+         LA    R2,BUFFER                                                09780000
+         L     R3,FSTLRECL-FSTD+EXFSTD Record size                      09790000
+*                                                                       09800000
+         LA    R15,L'BUFFER                                             09810000
+         CR    R3,R15             Is lrecl < 256?                       09820000
+         BL    INPUTD1            Skip next if so                       09830000
+         L     R2,FILEBUFA        Use larger buffer                     09840000
+INPUTD1  DS    0H                                                       09850000
+*                                                                       09860000
+         LH    R4,NEXTREC         Possible next record number           09870000
+*                                    to read (or 0 to read              09880000
+*                                    the record after the last          09890000
+*                                    record we read)                    09900000
+INPUTD14 DS    0H                                                       09910000
+         FSREAD FSCB=(R5),BUFFER=(R2),BSIZE=(R3),                      *09920000
+               RECNO=(R4),NOREC=1                                       09930000
+         LR    R1,R2              Reload record address                 09940000
+         LTR   R15,R15                                                  09950000
+         BZ    INPUTEND                                                 09960000
+         C     R15,=F'12'         EOF?                                  09970000
+         BE    INPUTEOF           Input from Device is done             09980000
+         C     R15,=F'9'          Already OPEN for WRITE?               09990000
+         BNE   INPUTD18           Skip if not                           10000000
+         FSCLOSE FSCB=(R5)        Just close it                         10010000
+         B     INPUTD14                                                 10020000
+INPUTD18 DS    0H                                                       10030000
+         LR    R2,R15             Pass return code                      10040000
+         LA    R3,=CL8'FSREAD'    Pass MACRO name                       10050000
+         B     INVRETCD           Tell caller about error               10060000
+*                                                                       10070000
+* Fetch input line from a card reader                                   10080000
+*                                                                       10090000
+INPUTD2  DS    0H                                                       10100000
+         TM    CURROP,VCARD       From Card reader?                     10110000
+         BZ    INPUTD3            No, try next                          10120000
+         LA    R2,BUFFER                                                10130000
+         LA    R3,L'BUFFER                                              10140000
+         RDCARD (R2),(R3)         Read a record                         10150000
+         LA    R1,BUFFER          Record address                        10160000
+*              R0                 Record length                         10170000
+         LTR   R15,R15                                                  10180000
+         BZ    INPUTEND                                                 10190000
+         C     R15,=F'1'          EOF?                                  10200000
+         BE    INPUTEOF           Input from Device is done             10210000
+         LR    R2,R15             Pass return code                      10220000
+         LA    R3,=CL8'RDCARD'    Pass MACRO name                       10230000
+         B     INVRETCD           Tell caller about error               10240000
+*                                                                       10250000
+* Fetch input line from a CP command response buffer                    10260000
+*                                                                       10270000
+INPUTD3  DS    0H                                                       10280000
+         TM    CURROP,VCP         From CP response                      10290000
+         BZ    INPUTD4            No, try next                          10300000
+         L     R2,CPRESPNX        CP response next line addr            10310000
+         L     R3,CPRESPRL        CP response remaining length          10320000
+*                                 R2 is the response address            10330000
+*                                 R3 is the response length             10340000
+         LTR   R0,R3              Anything left to return?              10350000
+         BZ    INPUTEOF           If not, send EOF to caller            10360000
+         LR    R4,R2              Start of 1st response line            10370000
+INPUTD15 DS    0H                                                       10380000
+         LA    R4,1(,R4)                                                10390000
+         CLI   0(R4),X'15'        Found X'15' delimiter?                10400000
+         BE    *+8                Found end of line, skip out           10410000
+         BCT   R3,INPUTD15        No, keep looking                      10420000
+*                                                                       10430000
+         BCTR  R3,0               Decrement to account for              10440000
+*                                   the trailing X'15'                  10450000
+         LA    R0,1(,R4)                                                10460000
+         ST    R0,CPRESPNX        Save next line start                  10470000
+*                                    for next iteration                 10480000
+         BCTR  R3,0                                                     10490000
+         ST    R3,CPRESPRL        Save remaining length                 10500000
+*                                    for next iteration                 10510000
+         LR    R1,R2              Address of line we found              10520000
+         LR    R0,R4              Address of following X'15'            10530000
+         SR    R0,R1              Length of line we found               10540000
+         B     INPUTEND                                                 10550000
+INPUTD4  DS    0H                                                       10560000
+         DC    H'0'               Should not get here                   10570000
+INPUTEND DS    0H                                                       10580000
+         SR    R15,R15                                                  10590000
+         B     INPUTXIT                                                 10600000
+INPUTEOF DS    0H                 Input from Device is done             10610000
+         LA    R15,1              EOF Return code                       10620000
+INPUTXIT DS    0H                                                       10630000
+         STM   R15,R1,SAVEAREA+4  Pass back R15,R0,R1                   10640000
+         LM    R14,R5,SAVEAREA                                          10650000
+         BR    R14                                                      10660000
+ TITLE 'EXECIO: Select input records'                                   10670000
+*------------------------------------------------------------*          10680000
+*                                                            *          10690000
+* Choose specific records using selection criteria           *          10700000
+*                                                            *          10710000
+*------------------------------------------------------------*          10720000
+SEARCH   DS    0H                                                       10730000
+         STM   R14,R5,SAVEAREA                                          10740000
+         TM    OPTBITS,OPFIND+OPLOCATE+OPAVOID Search wanted?           10750000
+         BZ    SRCHRET            Return if no search criteria          10760000
+*                                                                       10770000
+         LR    R7,R1              Address of line to search             10780000
+         LR    R8,R0              Length of line to search              10790000
+*                                                                       10800000
+         LR    R2,R7                                                    10810000
+         TM    OPTBITS2,OPZONE    Specific column range?                10820000
+         BZ    NOZONE1            Skip if not                           10830000
+         A     R2,ZONE1           Search start address                  10840000
+         BCTR  R2,0                                                     10850000
+NOZONE1  DS    0H                 R2 is search start address            10860000
+*                                                                       10870000
+         LA    R6,0(R7,R8)        point past end of line                10880000
+         LR    R1,R6              Here too                              10890000
+         TM    OPTBITS2,OPZONE    Specific column range?                10900000
+         BZ    NOZONE2            Skip if not                           10910000
+         LR    R1,R7                                                    10920000
+         A     R1,ZONE2           End start address                     10930000
+         C     R1,MAXWORD                                               10940000
+         BNH   *+8                Don't go overboard.                   10950000
+         L     R1,MAXWORD                                               10960000
+*                                                                       10970000
+         CR    R1,R6              Pick the lessor of end                10980000
+         BNH   *+6                   of zone or end of line             10990000
+         LR    R1,R6                                                    11000000
+NOZONE2  DS    0H                 R2 is search start address            11010000
+*                                                                       11020000
+* R1 is one byte past search area                                       11030000
+* R2 is start of search area                                            11040000
+*                                                                       11050000
+         L     R4,FILTERL         Length of string to find              11060000
+         SR    R1,R4              Address of last place in              11070000
+*                                   record where search can             11080000
+*                                     be done                           11090000
+         BCTR  R4,0               Length of search string - 1           11100000
+*                                                                       11110000
+*                                                                       11120000
+* Filter data as requested by option FIND                               11130000
+*                                                                       11140000
+         TM    OPTBITS,OPFIND     Specific records to FIND?             11150000
+         BZ    SRCHNF             Skip if not                           11160000
+         L     R15,FILTERA        Search data start                     11170000
+         CLC   0(*-*,R2),0(R15)                                         11180000
+         EX    R4,*-6             Match found in 1st column?            11190000
+         BE    SRCHPASS           Yes, found                            11200000
+         B     SRCHFAIL           No, not found                         11210000
+SRCHNF   DS    0H                                                       11220000
+*                                                                       11230000
+* Filter data by option LOCATE or AVOID                                 11240000
+*                                                                       11250000
+         CR    R2,R1              Within search area?                   11260000
+         BH    SRCHFAIL           Not found if not                      11270000
+         L     R15,FILTERA        Search data start                     11280000
+SRCHLOOP DS    0H                                                       11290000
+         CLC   0(*-*,R2),0(R15)                                         11300000
+         EX    R4,*-6             Match?                                11310000
+         BE    SEARCHF            Yes, search done                      11320000
+*                                                                       11330000
+         LA    R2,1(,R2)          Step to next column                   11340000
+         CR    R2,R1              Within search area?                   11350000
+         BL    SRCHLOOP           Check next column if so               11360000
+*                                 No match with search                  11370000
+         TM    OPTBITS,OPLOCATE   Specific records to LOCATE?           11380000
+         BO    SRCHPASS           Bif record we want found              11390000
+         B     SRCHFAIL           Otherwise fail                        11400000
+SEARCHF  DS    0H                 Record matches search                 11410000
+         TM    OPTBITS,OPAVOID    Specific records to AVOID             11420000
+         BO    SRCHFAIL           Bif record not avoided                11430000
+         B     SRCHPASS           Otherwise match passes                11440000
+*                                                                       11450000
+SRCHPASS DS    0H                                                       11460000
+         SR    R15,R15            CC=0 means use the record             11470000
+         B     SRCHRET                                                  11480000
+SRCHFAIL DS    0H                                                       11490000
+         LA    R15,1                                                    11500000
+SRCHRET  DS    0H                                                       11510000
+         L     R14,SAVEAREA                                             11520000
+         LM    R0,R5,SAVEAREA+8                                         11530000
+         LTR   R15,R15            Set CC                                11540000
+         BR    R14                                                      11550000
+ TITLE 'EXECIO: Modify system output'                                   11560000
+*------------------------------------------------------------*          11570000
+*                                                            *          11580000
+* Modify data before sending to calling EXEC or to device    *          11590000
+*                                                            *          11600000
+*------------------------------------------------------------*          11610000
+MODIFY   DS    0H                                                       11620000
+         STM   R14,R5,SAVEAREA                                          11630000
+*                                                                       11640000
+* Transform data as requested by option MARGIN                          11650000
+*                                                                       11660000
+         TM    OPTBITS2,OPMARGIN  specific output columns?              11670000
+         BZ    MODOUNM            Skip if not                           11680000
+         L     R4,MARGIN1                                               11690000
+         L     R5,MARGIN2                                               11700000
+         LR    R2,R0                                                    11710000
+         LA    R2,0(R2,R1)        R2 points past last byte              11720000
+*                                    in string                          11730000
+         LA    R5,0(R5,R1)        R5 points past last byte              11740000
+*                                    in ending margin                   11750000
+         CR    R2,R5                                                    11760000
+         BNL   *+6                Skip if margin 2 not smaller          11770000
+         LR    R2,R5              R2 now points to byte past            11780000
+*                                    end margin                         11790000
+         BCTR  R4,0                                                     11800000
+         LA    R4,0(R4,R1)        R4 points to first byte in            11810000
+*                                    start margin                       11820000
+         CR    R1,R4                                                    11830000
+         BNL   *+6                Skip if margin 1 not larger           11840000
+         LR    R1,R4              R1 now points to byte at              11850000
+*                                    start margin                       11860000
+         LR    R0,R2                                                    11870000
+         SR    R0,R1              R0 has new length                     11880000
+MODOUNM  DS    0H                                                       11890000
+*                                                                       11900000
+* Transform data as requested by option STRIP                           11910000
+*                                                                       11920000
+         TM    OPTBITS2,OPSTRIP   Skip leading,trailing blanks          11930000
+         BZ    MODOUNS            Skip if not                           11940000
+         C     R0,=F'1'           No strip for string                   11950000
+         BE    MODOUS5               one byte long                      11960000
+*                                                                       11970000
+         LR    R2,R0                                                    11980000
+         LA    R2,0(R2,R1)        R2 points past last byte              11990000
+*                                    in string                          12000000
+         BCTR  R2,0               R2 points to last byte                12010000
+MODOUS1  DS    0H                                                       12020000
+         CR    R2,R1                                                    12030000
+         BNH   MODOUS2            All blanks?                           12040000
+         CLI   0(R2),C' '                                               12050000
+         BNE   MODOUS2                                                  12060000
+         BCT   R2,MODOUS1         Back up one and look again            12070000
+MODOUS2  DS    0H                                                       12080000
+         LA    R2,1(,R2)          Point past last non-blank             12090000
+*                                    or past one single blank           12100000
+MODOUS3  DS    0H                                                       12110000
+         CLI   0(R1),C' '                                               12120000
+         BNE   MODOUS4            No leading blanks                     12130000
+         LA    R1,1(,R1)                                                12140000
+         CR    R1,R2                                                    12150000
+         BL    MODOUS3                                                  12160000
+         BCTR  R1,0               Back up to only blank                 12170000
+MODOUS4  DS    0H                 Here when 1st nonblank found          12180000
+*                                    or string is one byte now          12190000
+         LR    R0,R2                                                    12200000
+         SR    R0,R1              R1 is stripped start,R0=len           12210000
+MODOUS5  DS    0H                 Here when 1st nonblank found          12220000
+*                                                                       12230000
+* Transform data as requested by option UPPERCASE                       12240000
+*                                                                       12250000
+MODOUNS  DS    0H                                                       12260000
+         TM    OPTBITS,OPCASEU    Uppercase selected?                   12270000
+         BZ    MODOUNCU           Skip if not                           12280000
+         L     R2,NUCUPPER                                              12290000
+         LR    R15,R0                                                   12300000
+         BCTR  R15,0                                                    12310000
+         EX    R15,MODUPPER       Translate to uppercase                12320000
+MODOUNCU DS    0H                                                       12330000
+         LM    R14,R5,SAVEAREA                                          12340000
+         BR    R14                Input data is ready                   12350000
+*                                                                       12360000
+MODUPPER TR    0(*-*,R1),0(R2)    Translate to uppercase                12370000
+ TITLE 'EXECIO: Output records to EXEC caller'                          12380000
+*------------------------------------------------------------*          12390000
+*                                                            *          12400000
+* Send data to an EXEC caller via stack, VAR, or STEM.       *          12410000
+*                                                            *          12420000
+*------------------------------------------------------------*          12430000
+OUTPUT   DS    0H                                                       12440000
+         STM   R14,R5,SAVEAREA                                          12450000
+         USING SHVBLOCK,R5                                              12460000
+         TM    OPTBITS2,OPSKIP    Skip output wanted?                   12470000
+         BO    OUTPRET            If so, just return                    12480000
+*                                                                       12490000
+* Send output to a REXX variable                                        12500000
+*                                                                       12510000
+         TM    OPTBITS3,OPVAR     REXX Variable output                  12520000
+         BZ    OUTNV              Skip if not                           12530000
+         TM    CURROP,VIN         Option used as input by               12540000
+*                                    an output operator?                12550000
+         BZ    OUTNV              Skip if not                           12560000
+*                                                                       12570000
+         LR    R2,R0              Variable value length                 12580000
+         LR    R3,R1              Variable value address                12590000
+         L     R0,VARNAMEL        REXX variable name length             12600000
+         L     R1,VARNAMEA        REXX variable name address            12610000
+         BAL   R14,PUTREXXV       Put the variable value                12620000
+         B     OUTPRET                                                  12630000
+OUTNV    DS    0H                                                       12640000
+*                                                                       12650000
+* Send output to a REXX stemmed variable                                12660000
+*                                                                       12670000
+         TM    OPTBITS3,OPSTEM    REXX STEM output                      12680000
+         BZ    OUTNST             Skip if not                           12690000
+         TM    CURROP,VIN         Option used as input by               12700000
+*                                    an output operator?                12710000
+         BZ    OUTNST             Skip if not                           12720000
+*                                                                       12730000
+         LR    R2,R0              Variable value length                 12740000
+         LR    R3,R1              Variable value address                12750000
+         LA    R0,1               Increment the .n                      12760000
+         A     R0,STEMNEXT          value to build                      12770000
+         ST    R0,STEMNEXT                                              12780000
+         BAL   R14,STEMNBLD       Build the .n stemname                 12790000
+*                                                                       12800000
+         L     R0,STEMNAML        Length and                            12810000
+         LA    R1,STEMNAME           address of xxx.n name              12820000
+         BAL   R14,PUTREXXV       Set the variable value                12830000
+*                                                                       12840000
+* Set max elements in stem count                                        12850000
+*                                                                       12860000
+         L     R4,STEMNAML        Length and                            12870000
+         LA    R5,STEMNAME           address of xxx.n name              12880000
+         S     R4,VARNAMEL        Length of the 'n' string              12890000
+         A     R5,VARNAMEL        Address of the 'n' string             12900000
+*                                 varname.|nn|                          12910000
+         BCTR  R4,0               Copy nn                               12920000
+         MVC   STEMNAMC(*-*),0(R5)  to                                  12930000
+         EX    R4,*-6                 STEMNAMC                          12940000
+         LA    R4,1(,R4)          Hold length                           12950000
+         LA    R5,STEMNAMC        Hold address                          12960000
+*                                                                       12970000
+         SR    R0,R0              Build the                             12980000
+         BAL   R14,STEMNBLD             .0 stemname                     12990000
+         L     R0,STEMNAML        Length and                            13000000
+         LA    R1,STEMNAME           address of xxx.0 name              13010000
+*                                                                       13020000
+         LR    R2,R4              Variable value length                 13030000
+         LR    R3,R5              Variable value address                13040000
+         BAL   R14,PUTREXXV       Put the .0 variable value             13050000
+         B     OUTPRET                                                  13060000
+OUTNST   DS    0H                                                       13070000
+*                                                                       13080000
+* Send output to the stack                                              13090000
+*                                                                       13100000
+         TM    OPTBITS3,OPLIFO    Which end to use                      13110000
+         BO    OUTLIFO                                                  13120000
+         BAL   R14,QUEUE          Stack First in First out              13130000
+         B     OUTPRET                                                  13140000
+OUTLIFO  DS    0H                                                       13150000
+         BAL   R14,PUSH           Stack Last in First out               13160000
+         B     OUTPRET                                                  13170000
+*                                                                       13180000
+OUTPRET  DS    0H                                                       13190000
+         LM    R14,R5,SAVEAREA                                          13200000
+         BR    R14                                                      13210000
+ TITLE 'EXECIO: Option processing'                                      13220000
+*------------------------------------------------------------*          13230000
+*                                                            *          13240000
+* AVOID  option processing                                   *          13250000
+*                                                            *          13260000
+*------------------------------------------------------------*          13270000
+$AVOID   DS    0H                                                       13280000
+         TM    OPTBITS,OPFIND+OPLOCATE                                  13290000
+         BNZ   MUTXOP1                                                  13300000
+         OI    OPTBITS,OPAVOID    Remember option specified             13310000
+         B     FINDDLM            Join common code below                13320000
+         SPACE 2                                                        13330000
+*------------------------------------------------------------*          13340000
+*                                                            *          13350000
+* BUFFER option processing                                   *          13360000
+*                                                            *          13370000
+*------------------------------------------------------------*          13380000
+$BUFFER  DS    0H                                                       13390000
+         BAL   R14,NXTTOKEN       Get the next token                    13400000
+         B     NOOPTV             Bif no option value                   13410000
+*                                                                       13420000
+         LA    R1,EPLTOKEN                                              13430000
+         BAL   R14,CVB            Convert size to binary                13440000
+         B     INVOPTV            Bif invalid number                    13450000
+*                                                                       13460000
+         ST    R0,CPBUFFL         Set size of the CP response           13470000
+         B     TONEXTOP                                                 13480000
+         SPACE 2                                                        13490000
+*------------------------------------------------------------*          13500000
+*                                                            *          13510000
+* CASE   option processing                                   *          13520000
+*                                                            *          13530000
+*------------------------------------------------------------*          13540000
+$CASE    DS    0H                                                       13550000
+         BAL   R14,NXTTOKEN       Get the next token                    13560000
+         B     NOOPTV             Bif no option value                   13570000
+*                                                                       13580000
+         CLC   =C'M ',EPLTOKEN    Mixed case?                           13590000
+         BE    TONEXTOP                                                 13600000
+         CLC   =C'U ',EPLTOKEN    Uppercase?                            13610000
+         BNE   INVOPTV            Say invalid option value              13620000
+         OI    OPTBITS,OPCASEU    Set uppercase                         13630000
+         B     TONEXTOP                                                 13640000
+         SPACE 2                                                        13650000
+*------------------------------------------------------------*          13660000
+*                                                            *          13670000
+* CC     option processing                                   *          13680000
+*                                                            *          13690000
+*        ASA       Move paper then print data                *          13700000
+*                                                            *          13710000
+*        blank     Advance 1 line before printing            *          13720000
+*        0         Advance 2 lines before printing           *          13730000
+*        -         Advance 2 lines before printing           *          13740000
+*        +         Advance 0 lines before printing           *          13750000
+*        1         Advance to next page before printing      *          13760000
+*                                                            *          13770000
+*        2-9,A,B,C Advance to vertical tab stop or carriage  *          13780000
+*                  control tape channel                      *          13790000
+*                                                            *          13800000
+*        Machine Immediate -  Advance the paper, no printing *          13810000
+*        -------                                             *          13820000
+*        X'03'     No operation                              *          13830000
+*        X'0B'     Space 1 line                              *          13840000
+*        X'13'     Space 2 lines                             *          13850000
+*        X'1B'     Space 3 lines                             *          13860000
+*        X'8B'     Skip to channel 1 immediate               *          13870000
+*        X'93'     Skip to channel 2 immediate               *          13880000
+*        X'9B'     Skip to channel 3 immediate               *          13890000
+*        X'A3'     Skip to channel 4 immediate               *          13900000
+*        X'AB'     Skip to channel 5 immediate               *          13910000
+*        X'B3'     Skip to channel 6 immediate               *          13920000
+*        X'BB'     Skip to channel 7 immediate               *          13930000
+*        X'C3'     Skip to channel 8 immediate               *          13940000
+*        X'CB'     Skip to channel 9 immediate               *          13950000
+*        X'D3'     Skip to channel 10 immediate              *          13960000
+*        X'DB'     Skip to channel 11 immediate              *          13970000
+*        X'E3'     Skip to channel 12 immediate              *          13980000
+*                                                            *          13990000
+*        Machine   Print data then move paper                *          14000000
+*        -------                                             *          14010000
+*        X'01'     Write without spacing                     *          14020000
+*        X'09'     Write and space 1 line                    *          14030000
+*        X'11'     Write and space 2 lines                   *          14040000
+*        X'19'     Write and space 3 lines                   *          14050000
+*        X'89'     Write and skip to channel 1               *          14060000
+*        X'91'     Write and skip to channel 2               *          14070000
+*        X'99'     Write and skip to channel 3               *          14080000
+*        X'A1'     Write and skip to channel 4               *          14090000
+*        X'A9'     Write and skip to channel 5               *          14100000
+*        X'B1'     Write and skip to channel 6               *          14110000
+*        X'C9'     Write and skip to channel 7               *          14120000
+*        X'C1'     Write and skip to channel 8               *          14130000
+*        X'C9'     Write and skip to channel 9               *          14140000
+*        X'D1'     Write and skip to channel 10              *          14150000
+*        X'D9'     Write and skip to channel 11              *          14160000
+*        X'E1'     Write and skip to channel 12              *          14170000
+*                                                            *          14180000
+*------------------------------------------------------------*          14190000
+$CC      DS    0H                                                       14200000
+         BAL   R14,NXTTOKEN       Get the next token                    14210000
+         B     NOOPTV             Bif no option value                   14220000
+*                                                                       14230000
+         CLC   =C'DATA ',EPLTOKEN Is CC within the data?                14240000
+         BE    $CCDATA            Go remember that                      14250000
+         CLI   EPLTOKEN+1,C' '    Is CC One byte?                       14260000
+         BNE   INVOPTV            No, invalid option value              14270000
+         MVC   CC,EPLTOKEN        Save CC                               14280000
+         B     TONEXTOP                                                 14290000
+$CCDATA  DS    0H                                                       14300000
+         MVI   CC,0               Remember CC is in the data            14310000
+         B     TONEXTOP                                                 14320000
+         SPACE 2                                                        14330000
+*------------------------------------------------------------*          14340000
+*                                                            *          14350000
+* FIFO   option processing                                   *          14360000
+*                                                            *          14370000
+*------------------------------------------------------------*          14380000
+$FIFO    DS    0H                                                       14390000
+         TM    OPTBITS3,OPLIFO+OPVAR+OPSTEM                             14400000
+         BNZ   MUTXOP2                                                  14410000
+         OI    OPTBITS3,OPFIFO    Remember option specified             14420000
+         B     TONEXTOP                                                 14430000
+         SPACE 2                                                        14440000
+*------------------------------------------------------------*          14450000
+*                                                            *          14460000
+* FINIS  option processing                                   *          14470000
+*                                                            *          14480000
+*------------------------------------------------------------*          14490000
+$FINIS   DS    0H                                                       14500000
+         OI    OPTBITS,OPFINIS    Close disk file after                 14510000
+         B     TONEXTOP                                                 14520000
+         SPACE 2                                                        14530000
+*------------------------------------------------------------*          14540000
+*                                                            *          14550000
+* FIND   option processing                                   *          14560000
+*                                                            *          14570000
+*------------------------------------------------------------*          14580000
+$FIND    DS    0H                                                       14590000
+         TM    OPTBITS,OPAVOID+OPLOCATE                                 14600000
+         BNZ   MUTXOP1                                                  14610000
+         OI    OPTBITS,OPFIND     Remember option specified             14620000
+         B     FINDDLM            Join common code below                14630000
+         SPACE 2                                                        14640000
+*------------------------------------------------------------*          14650000
+*                                                            *          14660000
+* LIFO   option processing                                   *          14670000
+*                                                            *          14680000
+*------------------------------------------------------------*          14690000
+$LIFO    DS    0H                                                       14700000
+         TM    OPTBITS3,OPFIFO+OPVAR+OPSTEM                             14710000
+         BNZ   MUTXOP2                                                  14720000
+         OI    OPTBITS3,OPLIFO    Remember option specified             14730000
+         B     TONEXTOP                                                 14740000
+         SPACE 2                                                        14750000
+*------------------------------------------------------------*          14760000
+*                                                            *          14770000
+* LOCATE option processing                                   *          14780000
+*                                                            *          14790000
+*------------------------------------------------------------*          14800000
+$LOCATE  DS    0H                                                       14810000
+         TM    OPTBITS,OPAVOID+OPFIND                                   14820000
+         BNZ   MUTXOP1                                                  14830000
+         OI    OPTBITS,OPLOCATE   Remember option specified             14840000
+*                                                                       14850000
+* Common code for AVOID, FIND, and LOCATE                               14860000
+*                                                                       14870000
+FINDDLM  DS    0H                                                       14880000
+         LM    R0,R1,EPLLEFT EPLNXT EPLIST Scan ptrs                    14890000
+         C     R0,=F'1'           Anything after 'FIND'                 14900000
+*                                    (or its abbreviation)?             14910000
+         BL    NOOPTV             Missing value                         14920000
+*                                                                       14930000
+FINDDLM1 DS    0H                                                       14940000
+         CLI   0(R1),C' '         Found our delimiter?                  14950000
+         BNE   FINDDLM2           Yes, continue                         14960000
+         LA    R1,1(,R1)                                                14970000
+         BCT   R0,FINDDLM1                                              14980000
+         B     NOOPTV             Missing value                         14990000
+FINDDLM2 DS    0H                                                       15000000
+         LR    R2,R1              Pointer to delimiter                  15010000
+FINDDLM3 DS    0H                                                       15020000
+         LA    R1,1(,R1)                                                15030000
+         CLC   0(1,R1),0(R2)      Found matching delimiter?             15040000
+         BE    FINDDLM4           Yes, continue                         15050000
+         BCT   R0,FINDDLM3                                              15060000
+         B     NOOPTV             Missing value                         15070000
+FINDDLM4 DS    0H                                                       15080000
+         BCTR  R0,0               Reduce for found end delim            15090000
+         LA    R2,1(,R2)          One byte past 1st delim               15100000
+         LR    R3,R1              Last delim address                    15110000
+         SR    R3,R2              Length of delimited string            15120000
+         STM   R2,R3,FILTERA FILTERL Remember for later                 15130000
+*                                                                       15140000
+         LA    R1,1(,R1)          Past for trailing delimiter           15150000
+         BCTR  R0,0               Reduce                                15160000
+         STM   R0,R1,EPLLEFT EPLNXT EPLIST Scan ptrs                    15170000
+         B     TONEXTOP                                                 15180000
+         SPACE 2                                                        15190000
+*------------------------------------------------------------*          15200000
+*                                                            *          15210000
+* MARGINS option processing                                  *          15220000
+*                                                            *          15230000
+*------------------------------------------------------------*          15240000
+$MARGINS DS    0H                                                       15250000
+         BAL   R14,NXTTOKEN       Get the next token                    15260000
+         B     NOOPTV             Bif no option value                   15270000
+*                                                                       15280000
+         LA    R1,EPLTOKEN                                              15290000
+         BAL   R14,CVB            Convert zone start                    15300000
+         B     INVOPTV            Bif invalid number                    15310000
+         ST    R0,MARGIN1         Set starting margin column            15320000
+*                                                                       15330000
+         BAL   R14,NXTTOKEN       Get the next token                    15340000
+         B     NOOPTV             Bif no option value                   15350000
+*                                                                       15360000
+         LA    R1,EPLTOKEN                                              15370000
+         BAL   R14,CVB            Convert zone start                    15380000
+         B     INVOPTV            Bif invalid number                    15390000
+         ST    R0,MARGIN2         Set ending margin column              15400000
+         OI    OPTBITS2,OPMARGIN  specific output columns               15410000
+         B     TONEXTOP                                                 15420000
+         SPACE 2                                                        15430000
+*------------------------------------------------------------*          15440000
+*                                                            *          15450000
+* NOTYPE option processing                                   *          15460000
+*                                                            *          15470000
+*------------------------------------------------------------*          15480000
+$NOTYPE  DS    0H                                                       15490000
+         OI    OPTBITS2,OPNOTYPE  Set option bit                        15500000
+         B     TONEXTOP                                                 15510000
+         SPACE 2                                                        15520000
+*------------------------------------------------------------*          15530000
+*                                                            *          15540000
+* SKIP   option processing                                   *          15550000
+*                                                            *          15560000
+*------------------------------------------------------------*          15570000
+$SKIP    DS    0H                                                       15580000
+         OI    OPTBITS2,OPSKIP    Set option bit                        15590000
+         B     TONEXTOP                                                 15600000
+         SPACE 2                                                        15610000
+*------------------------------------------------------------*          15620000
+*                                                            *          15630000
+* STEM   option processing                                   *          15640000
+*                                                            *          15650000
+*------------------------------------------------------------*          15660000
+$STEM    DS    0H                                                       15670000
+         TM    OPTBITS3,OPFIFO+OPVAR+OPVAR                              15680000
+         BNZ   MUTXOP2                                                  15690000
+*                                                                       15700000
+         LM    R0,R1,EPLLEFT EPLNXT EPLIST Scan ptrs                    15710000
+         C     R0,=F'1'           Anything after 'STEM'                 15720000
+         BL    NOOPTV             Missing value                         15730000
+*                                                                       15740000
+STEMDLM1 DS    0H                                                       15750000
+         CLI   0(R1),C' '         Found start of name?                  15760000
+         BNE   STEMDLM2            Yes, continue                        15770000
+         LA    R1,1(,R1)                                                15780000
+         BCT   R0,STEMDLM1                                              15790000
+         B     NOOPTV             Missing value                         15800000
+STEMDLM2 DS    0H                                                       15810000
+         LR    R2,R1              Pointer to start of name              15820000
+         LA    R1,1(,R1)          Next byte                             15830000
+         BCT   R0,STEMDLM3        Reduce count and                      15840000
+*                                    continue if > 0                    15850000
+         B     STEMDLM4           Must be one byte name                 15860000
+STEMDLM3 DS    0H                                                       15870000
+         CLI   0(R1),C' '         Found end of name?                    15880000
+         BE    STEMDLM4           Yes, continue                         15890000
+         LA    R1,1(,R1)                                                15900000
+         BCT   R0,STEMDLM3                                              15910000
+STEMDLM4 DS    0H                                                       15920000
+         STM   R0,R1,EPLLEFT EPLNXT New EPLIST Scan ptrs                15930000
+*                                                                       15940000
+         SR    R1,R2                                                    15950000
+         ST    R2,VARNAMEA        Set STEM name pointer                 15960000
+         ST    R1,VARNAMEL        Set STEM name length                  15970000
+*                                                                       15980000
+STEMNTST DS    0H                 Last char must be '.'                 15990000
+         CLI   0(R2),C'.'         Only last may be '.'                  16000000
+         BE    STEMPFND           Bif period found                      16010000
+         LA    R2,1(,R2)                                                16020000
+         BCT   R1,STEMNTST                                              16030000
+         B     BADSTEM            No period in name                     16040000
+STEMPFND DS    0H                 Last char must be '.'                 16050000
+         C     R1,=F'1'           Last byte?                            16060000
+         BNE   BADSTEM            Period not last byte                  16070000
+*                                                                       16080000
+         SR    R1,R1                                                    16090000
+         ST    R1,STEMNEXT        Next xxx.n value to fetch             16100000
+         OI    OPTBITS3,OPSTEM                                          16110000
+         B     TONEXTOP                                                 16120000
+         SPACE 2                                                        16130000
+*------------------------------------------------------------*          16140000
+*                                                            *          16150000
+* STRIP  option processing                                   *          16160000
+*                                                            *          16170000
+*------------------------------------------------------------*          16180000
+$STRIP   DS    0H                                                       16190000
+         OI    OPTBITS2,OPSTRIP   Set option bit                        16200000
+         B     TONEXTOP                                                 16210000
+         SPACE 2                                                        16220000
+*------------------------------------------------------------*          16230000
+*                                                            *          16240000
+* STRING option processing                                   *          16250000
+*                                                            *          16260000
+*------------------------------------------------------------*          16270000
+$STRING  DS    0H                                                       16280000
+         OI    OPTBITS3,OPSTRING                                        16290000
+         CLC   LINES,MAXWORD      Was lines set to '*' ?                16300000
+         BNE   $STRINGA           No. proceed                           16310000
+         CLI   CURROP,VCP         Is this a 'CP' operation              16320000
+         BE    $STRINGA           Yes, allowed                          16330000
+         B     NOLINEX                                                  16340000
+$STRINGA DS    0H                                                       16350000
+         LM    R0,R1,EPLLEFT EPLNXT EPLIST Scan ptrs                    16360000
+         LTR   R0,R0              Anything after 'STRING'               16370000
+*                                    (or its abbreviation)?             16380000
+         BZ    NOOPTV             Missing value                         16390000
+         LA    R1,1(,R1)          If there it has to be                 16400000
+         BCTR  R0,0                  a blank which we skip              16410000
+         LTR   R0,R0              Anything after the blank?             16420000
+         BZ    NOOPTV             Missing value                         16430000
+*                                                                       16440000
+*                                 'STRING' (abbreviation) and           16450000
+*                                 the blank after it.                   16460000
+*                                 This is the start of the              16470000
+*                                 STRING option value.                  16480000
+         A     R1,EPLENGTH        Switch to the version                 16490000
+*                                 of the STRING value that              16500000
+*                                 was entered on the command            16510000
+         ST    R1,STRINGBF        Set upper case buffer addr            16520000
+         ST    R0,STRINGBL        Set length                            16530000
+*                                                                       16540000
+* STRING has to be the last option specified. Fake up a return          16550000
+* to end the option scan.                                               16560000
+         SR    R0,R0                                                    16570000
+         ST    R0,EPLLEFT                                               16580000
+         B     TONEXTOP                                                 16590000
+         SPACE 2                                                        16600000
+*------------------------------------------------------------*          16610000
+*                                                            *          16620000
+* VAR    option processing                                   *          16630000
+*                                                            *          16640000
+*------------------------------------------------------------*          16650000
+$VAR     DS    0H                                                       16660000
+         TM    OPTBITS3,OPFIFO+OPVAR+OPSTEM                             16670000
+         BNZ   MUTXOP2                                                  16680000
+         CLC   LINES,=F'1'        Is number of line one?                16690000
+         BNE   VLINES1            If not, fail                          16700000
+*                                                                       16710000
+         LM    R0,R1,EPLLEFT EPLNXT EPLIST Scan ptrs                    16720000
+         C     R0,=F'1'           Anything after 'VAR'                  16730000
+         BL    NOOPTV             Missing value                         16740000
+*                                                                       16750000
+VARDLM1  DS    0H                                                       16760000
+         CLI   0(R1),C' '         Found start of name?                  16770000
+         BNE   VARDLM2            Yes, continue                         16780000
+         LA    R1,1(,R1)                                                16790000
+         BCT   R0,VARDLM1                                               16800000
+         B     NOOPTV             Missing value                         16810000
+VARDLM2  DS    0H                                                       16820000
+         LR    R2,R1              Pointer to start of name              16830000
+         LA    R1,1(,R1)          Next byte                             16840000
+         BCT   R0,VARDLM3         Reduce count and                      16850000
+*                                    continue if > 0                    16860000
+         B     VARDLM4            Must be one byte name                 16870000
+VARDLM3  DS    0H                                                       16880000
+         CLI   0(R1),C' '         Found end of name?                    16890000
+         BE    VARDLM4            Yes, continue                         16900000
+         LA    R1,1(,R1)                                                16910000
+         BCT   R0,VARDLM3                                               16920000
+VARDLM4  DS    0H                                                       16930000
+         STM   R0,R1,EPLLEFT EPLNXT New EPLIST Scan ptrs                16940000
+*                                                                       16950000
+         SR    R1,R2                                                    16960000
+         ST    R2,VARNAMEA        Set VAR name pointer                  16970000
+         ST    R1,VARNAMEL        Set VAR name length                   16980000
+*                                                                       16990000
+         OI    OPTBITS3,OPVAR                                           17000000
+         B     TONEXTOP                                                 17010000
+         SPACE 2                                                        17020000
+*------------------------------------------------------------*          17030000
+*                                                            *          17040000
+* ZONE   option processing                                   *          17050000
+*                                                            *          17060000
+*------------------------------------------------------------*          17070000
+$ZONE    DS    0H                                                       17080000
+         BAL   R14,NXTTOKEN       Get the next token                    17090000
+         B     NOOPTV             Bif no option value                   17100000
+*                                                                       17110000
+         LA    R1,EPLTOKEN                                              17120000
+         BAL   R14,CVB            Convert zone start                    17130000
+         B     INVOPTV            Bif invalid number                    17140000
+         ST    R0,ZONE1           Set starting zone column              17150000
+*                                                                       17160000
+         BAL   R14,NXTTOKEN       Get the next token                    17170000
+         B     NOOPTV             Bif no option value                   17180000
+*                                                                       17190000
+         LA    R1,EPLTOKEN                                              17200000
+         BAL   R14,CVB            Convert zone start                    17210000
+         B     INVOPTV            Bif invalid number                    17220000
+         ST    R0,ZONE2           Set ending zone column                17230000
+         OI    OPTBITS2,OPZONE    Mark option specified                 17240000
+         B     TONEXTOP                                                 17250000
+         SPACE 2                                                        17260000
+ TITLE 'EXECIO: General subroutines'                                    17270000
+*------------------------------------------------------------*          17280000
+*                                                            *          17290000
+*        Next Token Scan                                     *          17300000
+*                                                            *          17310000
+*------------------------------------------------------------*          17320000
+NXTTOKEN DS    0H                                                       17330000
+         MVI   EPLTOKEN,C' '      Preblank target area                  17340000
+         MVC   EPLTOKEN+1(L'EPLTOKEN-1),EPLTOKEN                        17350000
+         LM    R0,R1,EPLLEFT EPLNXT Fetch EPLIST Scan ptrs              17360000
+         LTR   R0,R0                                                    17370000
+         BZR   R14                Tell caller end of arguments          17380000
+NXTTOK2  DS    0H                                                       17390000
+         CLI   0(R1),C' '         Found next non-blank?                 17400000
+*                                                                       17410000
+         BE    NXTTOK3            Y. Keep looking for nonblank          17420000
+         CLI   0(R1),C'('         Start of options?                     17430000
+         BNE   NXTTOK4            No, found normal character            17440000
+*                                 Go scan token                         17450000
+         MVC   EPLTOKEN,=CL8'('   Set token                             17460000
+         LA    R1,1(,R1)          Skip over '('                         17470000
+         BCTR  R0,0               Reduce remaining length               17480000
+         STM   R0,R1,EPLLEFT EPLNXT Reset EPLIST Scan ptrs              17490000
+         B     4(,R14)            Return argument to caller             17500000
+*                                                                       17510000
+NXTTOK3  DS    0H                                                       17520000
+*                                                                       17530000
+         LA    R1,1(,R1)          To next character                     17540000
+         BCT   R0,NXTTOK2         Keep looking                          17550000
+         BR    R14                Tell caller end of arguments          17560000
+NXTTOK4  DS    0H                                                       17570000
+         LR    R15,R1             Remember start of token               17580000
+NXTTOK5  DS    0H                                                       17590000
+         CLI   0(R1),C' '         Found next non-blank?                 17600000
+         BE    NXTTOK6            Bif so to scan token                  17610000
+         CLI   0(R1),C'('         Found option start?                   17620000
+         BE    NXTTOK6            Bif so to scan token                  17630000
+         LA    R1,1(,R1)          To next character                     17640000
+         BCT   R0,NXTTOK5         Keep looking                          17650000
+NXTTOK6  DS    0H                                                       17660000
+         STM   R0,R1,EPLLEFT EPLNXT Reset EPLIST Scan ptrs              17670000
+         SR    R1,R15             Length of the token                   17680000
+         BCTR  R1,0                                                     17690000
+         MVC   EPLTOKEN(*-*),0(R15)                                     17700000
+         EX    R1,*-6             Copy to 8 byte token area             17710000
+         B     4(,R14)            Return argument to caller             17720000
+*------------------------------------------------------------*          17730000
+*                                                            *          17740000
+*        Queue                                               *          17750000
+*                                                            *          17760000
+*------------------------------------------------------------*          17770000
+QUEUE    DS    0H                                                       17780000
+         LA    R15,PLISTBLD                                             17790000
+         MVC   0(8,R15),=CL8'ATTN' Stack response                       17800000
+         MVC   8(4,R15),=CL4'FIFO' First in first out                   17810000
+         STC   R0,12(R15)         Set line length                       17820000
+         STCM  R1,B'0111',13(R15) Set line address                      17830000
+         MVC   16(8,R15),=8X'FF'  Set fence                             17840000
+         LR    R1,R15                                                   17850000
+         SVC   202                                                      17860000
+         DC    AL4(1)                                                   17870000
+         BR    R14                                                      17880000
+*------------------------------------------------------------*          17890000
+*                                                            *          17900000
+*        Push                                                *          17910000
+*                                                            *          17920000
+*------------------------------------------------------------*          17930000
+PUSH     DS    0H                                                       17940000
+         LA    R15,PLISTBLD                                             17950000
+         MVC   0(8,R15),=CL8'ATTN' Stack response                       17960000
+         MVC   8(4,R15),=CL4'LIFO' Last in first out                    17970000
+         STC   R0,12(R15)         Set line length                       17980000
+         STCM  R1,B'0111',13(R15) Set line address                      17990000
+         MVC   16(8,R15),=8X'FF'  Set fence                             18000000
+         LR    R1,R15                                                   18010000
+         SVC   202                                                      18020000
+         DC    AL4(1)                                                   18030000
+         BR    R14                                                      18040000
+*------------------------------------------------------------*          18050000
+*                                                            *          18060000
+*        Pull                                                *          18070000
+*                                                            *          18080000
+*------------------------------------------------------------*          18090000
+PULL     DS    0H                                                       18100000
+* Use RDTERM to read the line.                                          18110000
+*        RDTERM BUFFER,EDIT=NO                                          18120000
+         MVC   RDTERME(RDTERMPL),RDTERMP set pattern                    18130000
+         LA    R1,BUFFER                                                18140000
+         MVI   0(R1),C' '         Init to blanks                        18150000
+         MVC   1(255,R1),0(R1)                                          18160000
+         STCM  R1,B'0111',RDTERME+9 Set buffer address                  18170000
+         LA    R1,RDTERME                                               18180000
+         SVC   202                                                      18190000
+         DC    AL4(1)                                                   18200000
+         LA    R1,BUFFER                                                18210000
+         SR    R0,R0                                                    18220000
+         ICM   R0,B'0111',RDTERME+13 Returned line length               18230000
+         BR    R14                                                      18240000
+*                                                                       18250000
+RDTERMP  DS    0D                                                       18260000
+         DC    CL8'WAITRD'                                              18270000
+         DC    AL1(1)                                                   18280000
+         DC    AL3(*-*)           Address of input line                 18290000
+         DC    C'T'               NO UPPERCASE OR BLANK FILL            18300000
+         DC    AL3(*-*)           Count returned here                   18310000
+RDTERMPL EQU   *-RDTERMP                                                18320000
+*------------------------------------------------------------*          18330000
+*                                                            *          18340000
+*        Convert to Binary                                   *          18350000
+*                                                            *          18360000
+*        Input: R1  = address of character decimal number    *          18370000
+*                     followed by a blank                    *          18380000
+*        Output: R1 = Binary number                          *          18390000
+*                                                            *          18400000
+*        Return to 0(,R14)    conversion error               *          18410000
+*                  4(,R14)    successful conversion          *          18420000
+*------------------------------------------------------------*          18430000
+CVB      DS    0H                                                       18440000
+         STM   R14,R5,CVBSAVE                                           18450000
+         SR    R2,R2              R2-R3 used to build number            18460000
+         SR    R3,R3                                                    18470000
+         SR    R5,R5              R4 has next digit                     18480000
+         LA    R0,8               Loop counter                          18490000
+CVBLP    DS    0H                 Loop for all digits                   18500000
+         CLI   0(R1),C' '         Found end of the number?              18510000
+         BE    CVBEXIT            Yes, go process                       18520000
+         CLI   0(R1),C'0'         Valid EBCDIC digit?                   18530000
+         BL    CVBERR             Nope                                  18540000
+         CLI   0(R1),C'9'         Valid EBCDIC digit?                   18550000
+         BH    CVBERR             Nope                                  18560000
+         IC    R5,0(,R1)          Next digit                            18570000
+         N     R5,=A(X'0F')                                             18580000
+         M     R2,=F'10'                                                18590000
+         AR    R3,R5              Accumulate the total                  18600000
+         LA    R1,1(,R1)          Step to next digit                    18610000
+         BCT   R0,CVBLP           Check all 8 bytes                     18620000
+CVBEXIT  DS    0H                                                       18630000
+         ST    R3,CVBSAVE+8       Return binary in R0                   18640000
+         LM    R14,R5,CVBSAVE                                           18650000
+         B     4(,R14)                                                  18660000
+CVBERR   DS    0H                                                       18670000
+         LM    R14,R5,CVBSAVE                                           18680000
+         BR    R14                                                      18690000
+*------------------------------------------------------------*          18700000
+*                                                            *          18710000
+*        Build REXX stem variable name                       *          18720000
+*                                                            *          18730000
+* Input:   VARNAMEL stem variable name length                *          18740000
+*          VARNAMEA stem variable name address               *          18750000
+*          R0       next stem number to use                  *          18760000
+*                                                            *          18770000
+* Output:  STEMNAML Built stem name length                   *          18780000
+*          STEMNAME Built stem name string                   *          18790000
+*                                                            *          18800000
+*------------------------------------------------------------*          18810000
+STEMNBLD DS    0H                                                       18820000
+         STM   R14,R5,CVBSAVE                                           18830000
+*              R0                 Index of stem to use                  18840000
+         L     R14,VARNAMEA       Address of provided name              18850000
+         L     R15,VARNAMEL       Length of provided name               18860000
+         BCTR  R15,0                                                    18870000
+         MVC   STEMNAME(*-*),0(R14) Copy stemname to result             18880000
+         EX    R15,*-6                                                  18890000
+*                                                                       18900000
+         LA    R2,STEMNAME+1(R15) Point past end of stemname            18910000
+         LA    R1,L'STEMPAT-1(R2) (In case EDMK gets RC=0)              18920000
+         CVD   R0,DWORD           Convert binary to packed              18930000
+         MVC   0(L'STEMPAT,R2),STEMPAT  Set pattern                     18940000
+         EDMK  0(L'STEMPAT,R2),DWORD    EDIT with pattern               18950000
+         LA    R15,L'STEMPAT-1(R2) To end of the number                 18960000
+         SR    R15,R1             Get number length - 1                 18970000
+         MVC   0(*-*,R2),0(R1)    Move the suffix number                18980000
+         EX    R15,*-6                                                  18990000
+*                                                                       19000000
+         LA    R1,1(,R15)         Number length in R1                   19010000
+         A     R1,VARNAMEL        Length of the build variable          19020000
+         ST    R1,STEMNAML        Pass to caller                        19030000
+         LM    R14,R5,CVBSAVE                                           19040000
+         BR    R14                AND DONE, RETURN TO CALLER            19050000
+STEMPAT  DC    X'40202020202020202020202020202120' EDMK Mask            19060000
+*------------------------------------------------------------*          19070000
+*                                                            *          19080000
+*        Get REXX variable value                             *          19090000
+*                                                            *          19100000
+* Input:   R0  REXX variable name length                     *          19110000
+*          R1  REXX variable name Address                    *          19120000
+*                                                            *          19130000
+* Output:  R0  REXX variable value length                    *          19140000
+*          R1  REXX variable value Address                   *          19150000
+*          R15 EXECCOMM RC                                   *          19160000
+*                                                            *          19170000
+* Error Exit: INVRETCD                                       *          19180000
+*                                                            *          19190000
+*------------------------------------------------------------*          19200000
+         USING SHVBLOCK,R5                                              19210000
+GETREXXV DS    0H                                                       19220000
+         STM   R14,R5,REXSAVE                                           19230000
+         LA    R5,SHVAREA                                               19240000
+         XC    SHVBLOCK(SHVBLEN),SHVBLOCK                               19250000
+         XC    SHEPLIST(16),SHEPLIST                                    19260000
+*                                                                       19270000
+         MVI   SHVCODE,SHVFETCH   Fetch variable value                  19280000
+         ST    R1,SHVNAMA         Set VAR name address                  19290000
+         ST    R0,SHVNAML                  and length                   19300000
+         ICM   R2,B'1111',REXBUFFL Large buffer in use?                 19310000
+         BZ    GETLOCLB           Use local buffer if not               19320000
+         ST    R2,SHVBUFL         Length of the buffer                  19330000
+         L     R2,REXBUFF                                               19340000
+*                                                                       19350000
+         ST    R2,SHVVALA         Address of value buffer               19360000
+         B     GETSETPL           Go set plist and go                   19370000
+GETLOCLB DS    0H                                                       19380000
+         LA    R2,BUFFER                                                19390000
+*                                                                       19400000
+         ST    R2,SHVVALA         Address of value buffer               19410000
+         LA    R2,L'BUFFER                                              19420000
+         ST    R2,SHVBUFL         Length of the buffer                  19430000
+GETSETPL DS    0H                                                       19440000
+*                                                                       19450000
+         LA    R1,EXECCOMM        Fill in                               19460000
+         ST    R1,SHEPLIST           EPLIST                             19470000
+         ST    R5,SHEPL4          Word 4 -> SHVBLOCK                    19480000
+         LA    R0,SHEPLIST                                              19490000
+         ICM   R1,B'1000',=X'02'                                        19500000
+         SVC   202                                                      19510000
+         DC    AL4(1)                                                   19520000
+*                                                                       19530000
+         TM    SHVRET,SHVTRUNC    Did variable fit in buffer?           19540000
+         BZ    NOTRUNC1                                                 19550000
+**************************************************************          19560000
+*                                                                       19570000
+* The usual buffer in the DSA is not large enough to                    19580000
+* retrieve the REXX variable value. EXECIO returns the size             19590000
+* needed in REXBUFFL. Allocate a new buffer and try again.              19600000
+*                                                                       19610000
+         ICM   R1,B'1111',REXBUFFL                                      19620000
+         LA    R0,7(,R1)          Round up to doublewords               19630000
+         SRL   R0,3                                                     19640000
+         DMSFREE DWORDS=(0),TYPE=USER Allocate Work area                19650000
+         SLL   R0,3               Dwords to Bytes                       19660000
+         ST    R0,REXBUFFL                                              19670000
+         ST    R1,REXBUFF                                               19680000
+         ST    R0,SHVBUFL         Length of the buffer                  19690000
+         ST    R1,SHVVALA         Address of value buffer               19700000
+         B     GETSETPL           Go set plist and go                   19710000
+*                                                                       19720000
+**************************************************************          19730000
+NOTRUNC1 DS    0H                                                       19740000
+         L     R0,SHVVALL         Length of variable value              19750000
+         L     R1,SHVVALA         Address of variable value             19760000
+         STM   R15,R1,REXSAVE+4   Pass back the value ptrs              19770000
+         LM    R14,R5,REXSAVE                                           19780000
+         BR    R14                                                      19790000
+*------------------------------------------------------------*          19800000
+*                                                            *          19810000
+*        Put REXX variable value                             *          19820000
+*                                                            *          19830000
+* Input:   R0  REXX variable name length                     *          19840000
+*          R1  REXX variable name address                    *          19850000
+*          R2  REXX variable value length                    *          19860000
+*          R3  REXX variable value address                   *          19870000
+*                                                            *          19880000
+* Error Exit: INVRETCD                                       *          19890000
+*                                                            *          19900000
+*------------------------------------------------------------*          19910000
+PUTREXXV DS    0H                                                       19920000
+         STM   R14,R5,REXSAVE                                           19930000
+*                                                                       19940000
+         LA    R5,SHVAREA                                               19950000
+         XC    SHVBLOCK(SHVBLEN),SHVBLOCK                               19960000
+         XC    SHEPLIST(16),SHEPLIST                                    19970000
+*                                                                       19980000
+         MVI   SHVCODE,SHVSTORE   Call to set variable value            19990000
+         ST    R1,SHVNAMA         Set VAR name address                  20000000
+         ST    R0,SHVNAML                  and length                   20010000
+         ST    R3,SHVVALA         Set VAR value address                 20020000
+         ST    R2,SHVVALL                  and length                   20030000
+*                                                                       20040000
+         LA    R1,EXECCOMM        Fill in                               20050000
+         ST    R1,SHEPLIST           EPLIST                             20060000
+         ST    R5,SHEPL4          Word 4 -> SHVBLOCK                    20070000
+         LA    R0,SHEPLIST                                              20080000
+         ICM   R1,B'1000',=X'02'                                        20090000
+         SVC   202                                                      20100000
+         DC    AL4(1)                                                   20110000
+         LTR   R2,R15                                                   20120000
+         BZ    REXXVSET           Br if value set OK                    20130000
+         LA    R3,EXECCOMM                                              20140000
+         B     INVRETCD           Report EXECCOMM RC                    20150000
+REXXVSET DS    0H                                                       20160000
+         LM    R14,R5,REXSAVE                                           20170000
+         BR    R14                                                      20180000
+         DROP  R5                                                       20190000
+*------------------------------------------------------------*          20200000
+*                                                            *          20210000
+* Look for parameter as option keyword                       *          20220000
+*                                                            *          20230000
+*------------------------------------------------------------*          20240000
+OPTLKUP  DS    0H                                                       20250000
+         ST    R14,OPTRET         Set return address                    20260000
+         LA    R15,EPLTOKEN+7     Point to byte 8 of option             20270000
+         CLI   0(R15),C' '        Is is blank                           20280000
+         BNE   *+8                Yes skip out                          20290000
+         BCT   R15,*-8            Go test previous byte                 20300000
+*                                                                       20310000
+         LA    R15,1(,R15)                                              20320000
+         LA    R0,EPLTOKEN                                              20330000
+         SR    R15,R0             User supplied option length           20340000
+*                                                                       20350000
+         LA    R2,OPTTBL          Start of option table                 20360000
+         LA    R4,OPTTBLNE        Number of entries                     20370000
+OPTLKUP2 DS    0H                                                       20380000
+         CLM   R15,B'0001',8(R2)  Check against entry min size          20390000
+         BL    OPTLKUP3           Provided name too short               20400000
+         CLM   R15,B'0001',9(R2)  Check against entry max size          20410000
+         BH    OPTLKUP3           Provided name too long                20420000
+         BCTR  R15,0                                                    20430000
+         CLC   0(*-*,R2),EPLTOKEN                                       20440000
+         EX    R15,*-6            Does this option name match?          20450000
+         LA    R15,1(,R15)        Back to true lebgth                   20460000
+         BNE   OPTLKUP3           If, not, go check next                20470000
+*                                                                       20480000
+         MVC   OPTNAME,0(R2)      Set option name for msgs              20490000
+         IC    R15,CURROP         Pick up caller identity bit           20500000
+         TM    10(R2),*-*         Test whether this option              20510000
+         EX    R15,*-4              is valid for our call type          20520000
+         BZ    INVOPT             Error exit if not                     20530000
+         L     R15,12(,R2)        Option kwd handler routine            20540000
+         BR    R15                Go there                              20550000
+*                                                                       20560000
+OPTLKUP3 DS    0H                                                       20570000
+         LA    R2,OPTENTLN(,R2)   Skip to next tbl entry                20580000
+         BCT   R4,OPTLKUP2          and go check that one               20590000
+         B     INVOPT             No match on supplied option           20600000
+TONEXTOP DS    0H                                                       20610000
+         L     R14,OPTRET         Get return address                    20620000
+         BR    R14                Go look for more options              20630000
+ TITLE 'EXECIO: Error exits'                                            20640000
+*------------------------------------------------------------*          20650000
+*                                                            *          20660000
+* Error Exit routines                                        *          20670000
+*                                                            *          20680000
+*------------------------------------------------------------*          20690000
+INVRETCD DS    0H                                                       20700000
+         MVC   LINEDITL(LINEDISZ),LINEDITP Set pattern                  20710000
+         MVI   BUFFER,255         Set buffer size in byte 1             20720000
+         LINEDIT TEXT='Error: Return code ........ from ........',     *20730000
+               BUFFA=BUFFER,DISP=TYPE,                                 *20740000
+               SUB=(DEC,(R2),CHARA,((R3),8)),                          *20750000
+               MF=(E,LINEDITL)                                          20760000
+         LA    R15,100(,R2)       RC = 100 plus device rc               20770000
+         B     EXITRC                                                   20780000
+INVLRECL DS    0H                                                       20790000
+         MVC   LINEDITL(LINEDISZ),LINEDITP Set pattern                  20800000
+         MVI   BUFFER,255         Set buffer size in byte 1             20810000
+         LINEDIT TEXT='Invalid LRECL:........',                        *20820000
+               BUFFA=BUFFER,DISP=TYPE,                                 *20830000
+               SUB=(CHARA,EPLTOKEN),                                   *20840000
+               MF=(E,LINEDITL)                                          20850000
+         LA    R15,24                                                   20860000
+         B     EXITRC                                                   20870000
+INVLINES DS    0H                                                       20880000
+         MVC   LINEDITL(LINEDISZ),LINEDITP Set pattern                  20890000
+         MVI   BUFFER,255         Set buffer size in byte 1             20900000
+         LINEDIT TEXT='Invalid number of lines:........',              *20910000
+               BUFFA=BUFFER,DISP=TYPE,                                 *20920000
+               SUB=(CHARA,EPLTOKEN),                                   *20930000
+               MF=(E,LINEDITL)                                          20940000
+         LA    R15,24                                                   20950000
+         B     EXITRC                                                   20960000
+INVPARM  DS    0H                                                       20970000
+         MVC   LINEDITL(LINEDISZ),LINEDITP Set pattern                  20980000
+         MVI   BUFFER,255         Set buffer size in byte 1             20990000
+         LINEDIT TEXT='Invalid operand: ........',                     *21000000
+               BUFFA=BUFFER,DISP=TYPE,                                 *21010000
+               SUB=(CHARA,EPLTOKEN),                                   *21020000
+               MF=(E,LINEDITL)                                          21030000
+         LA    R15,24                                                   21040000
+         B     EXITRC                                                   21050000
+INVOPT   DS    0H                                                       21060000
+         MVC   LINEDITL(LINEDISZ),LINEDITP Set pattern                  21070000
+         MVI   BUFFER,255         Set buffer size in byte 1             21080000
+         LINEDIT TEXT='Invalid option: ........',                      *21090000
+               BUFFA=BUFFER,DISP=TYPE,                                 *21100000
+               SUB=(CHARA,EPLTOKEN),                                   *21110000
+               MF=(E,LINEDITL)                                          21120000
+         LA    R15,24                                                   21130000
+         B     EXITRC                                                   21140000
+INVOPTV  DS    0H                                                       21150000
+         MVC   LINEDITL(LINEDISZ),LINEDITP Set pattern                  21160000
+         MVI   BUFFER,255         Set buffer size in byte 1             21170000
+         LINEDIT TEXT='Invalid value: ........ for option: ........',  *21180000
+               BUFFA=BUFFER,DISP=TYPE,                                 *21190000
+               SUB=(CHARA,EPLTOKEN,CHARA,OPTNAME),                     *21200000
+               MF=(E,LINEDITL)                                          21210000
+         LA    R15,24                                                   21220000
+         B     EXITRC                                                   21230000
+MUTXOP1  DS    0H                                                       21240000
+         MVC   LINEDITL(LINEDISZ),LINEDITP Set pattern                  21250000
+         MVI   BUFFER,255         Set buffer size in byte 1             21260000
+         LINEDIT TEXT='FIND, LOCATE, and AVOID are mutually exclusive o*21270000
+               ptions',                                                *21280000
+               BUFFA=BUFFER,DISP=TYPE,                                 *21290000
+               MF=(E,LINEDITL)                                          21300000
+         LA    R15,24                                                   21310000
+         B     EXITRC                                                   21320000
+MUTXOP2  DS    0H                                                       21330000
+         MVC   LINEDITL(LINEDISZ),LINEDITP Set pattern                  21340000
+         MVI   BUFFER,255         Set buffer size in byte 1             21350000
+         LINEDIT TEXT='FIFO, LIFO, VAR, and STEM are mutually exclusive*21360000
+                options',                                              *21370000
+               BUFFA=BUFFER,DISP=TYPE,                                 *21380000
+               MF=(E,LINEDITL)                                          21390000
+         LA    R15,24                                                   21400000
+         B     EXITRC                                                   21410000
+NOOPTV   DS    0H                                                       21420000
+         MVC   LINEDITL(LINEDISZ),LINEDITP Set pattern                  21430000
+         MVI   BUFFER,255         Set buffer size in byte 1             21440000
+         LINEDIT TEXT='Missing value for option: ........',            *21450000
+               BUFFA=BUFFER,DISP=TYPE,                                 *21460000
+               SUB=(CHARA,OPTNAME),                                    *21470000
+               MF=(E,LINEDITL)                                          21480000
+         LA    R15,24                                                   21490000
+         B     EXITRC                                                   21500000
+MISSING  DS    0H                                                       21510000
+         MVC   LINEDITL(LINEDISZ),LINEDITP Set pattern                  21520000
+         MVI   BUFFER,255         Set buffer size in byte 1             21530000
+         LINEDIT TEXT='Missing ........ operand',                      *21540000
+               BUFFA=BUFFER,DISP=TYPE,                                 *21550000
+               SUB=(CHARA,((R4),8)),                                   *21560000
+               MF=(E,LINEDITL)                                          21570000
+         LA    R15,24                                                   21580000
+         B     EXITRC                                                   21590000
+REC2LARG DS    0H                                                       21600000
+         MVC   LINEDITL(LINEDISZ),LINEDITP Set pattern                  21610000
+         MVI   BUFFER,255         Set buffer size in byte 1             21620000
+         LINEDIT TEXT='VAR or STEM must be used for records larger than*21630000
+                255 bytes',                                            *21640000
+               BUFFA=BUFFER,DISP=TYPE,                                 *21650000
+               MF=(E,LINEDITL)                                          21660000
+         LA    R15,24                                                   21670000
+         B     EXITRC                                                   21680000
+NOSTORE  DS    0H                                                       21690000
+         MVC   LINEDITL(LINEDISZ),LINEDITP Set pattern                  21700000
+         MVI   BUFFER,255         Set buffer size in byte 1             21710000
+         LINEDIT TEXT='Requested storage not available',               *21720000
+               BUFFA=BUFFER,DISP=TYPE,                                 *21730000
+               MF=(E,LINEDITL)                                          21740000
+         LA    R15,41                                                   21750000
+         B     EXITRC                                                   21760000
+STRNOTF  DS    0H                                                       21770000
+         MVC   LINEDITL(LINEDISZ),LINEDITP Set pattern                  21780000
+         MVI   BUFFER,255         Set buffer size in byte 1             21790000
+         LINEDIT TEXT='STRING operand not found',                      *21800000
+               BUFFA=BUFFER,DISP=TYPE,                                 *21810000
+               MF=(E,LINEDITL)                                          21820000
+         LA    R15,24                                                   21830000
+         B     EXITRC                                                   21840000
+VLINES1  DS    0H                                                       21850000
+         MVC   LINEDITL(LINEDISZ),LINEDITP Set pattern                  21860000
+         MVI   BUFFER,255         Set buffer size in byte 1             21870000
+         LINEDIT TEXT='Number of lines must be one when VAR is set',   *21880000
+               BUFFA=BUFFER,DISP=TYPE,                                 *21890000
+               MF=(E,LINEDITL)                                          21900000
+         LA    R15,24                                                   21910000
+         B     EXITRC                                                   21920000
+NOLINEX  DS    0H                                                       21930000
+         MVC   LINEDITL(LINEDISZ),LINEDITP Set pattern                  21940000
+         MVI   BUFFER,255         Set buffer size in byte 1             21950000
+         LINEDIT TEXT='Lines * not allowed with STRING for this operati*21960000
+               on',                                                    *21970000
+               BUFFA=BUFFER,DISP=TYPE,                                 *21980000
+               MF=(E,LINEDITL)                                          21990000
+         LA    R15,24                                                   22000000
+         B     EXITRC                                                   22010000
+BADSTEM  DS    0H                                                       22020000
+         MVC   LINEDITL(LINEDISZ),LINEDITP Set pattern                  22030000
+         MVI   BUFFER,255         Set buffer size in byte 1             22040000
+         LINEDIT TEXT='Stem name must have one period at the end',     *22050000
+               BUFFA=BUFFER,DISP=TYPE,                                 *22060000
+               MF=(E,LINEDITL)                                          22070000
+         LA    R15,24                                                   22080000
+         B     EXITRC                                                   22090000
+NOTYET   DS    0H                                                       22100000
+         MVC   LINEDITL(LINEDISZ),LINEDITP Set pattern                  22110000
+         MVI   BUFFER,255         Set buffer size in byte 1             22120000
+         LINEDIT TEXT='Destination not yet implemented',               *22130000
+               BUFFA=BUFFER,DISP=TYPE,                                 *22140000
+               MF=(E,LINEDITL)                                          22150000
+         LA    R15,24                                                   22160000
+         B     EXITRC                                                   22170000
+ TITLE 'EXECIO: Lookup tables'                                          22180000
+*------------------------------------------------------------*          22190000
+* Table of valid operation calls and the handler address     *          22200000
+*------------------------------------------------------------*          22210000
+CTYPTBL  DS    0D                                                       22220000
+         DC    CL8'DISKR   ',A($DISKR)                                  22230000
+CTYPTBEL EQU   *-CTYPTBL          Length of an entry                    22240000
+         DC    CL8'CARD    ',A($CARD)                                   22250000
+         DC    CL8'CP      ',A($CP)                                     22260000
+         DC    CL8'DISKW   ',A($DISKW)                                  22270000
+         DC    CL8'PUNCH   ',A($PUNCH)                                  22280000
+         DC    CL8'EMSG    ',A($EMSG)                                   22290000
+         DC    CL8'PRINT   ',A($PRINT)                                  22300000
+CTYPTBNE EQU   (*-CTYPTBL)/CTYPTBEL Number of entries                   22310000
+*------------------------------------------------------------*          22320000
+*                                                            *          22330000
+* The option table format is:                                *          22340000
+*        Option name         - 8 characters                  *          22350000
+*        Minimum name length - 1 byte numeric                *          22360000
+*        Maximum name length - 1 byte numeric                *          22370000
+*        Valid call types                                    *          22380000
+*          for this option   - 1 byte of bit maps            *          22390000
+*        Unused              - 1                             *          22400000
+*        Label               - address of handler for call   *          22410000
+*                                                            *          22420000
+*------------------------------------------------------------*          22430000
+OPTTBL   DS    0D                                                       22440000
+         DC    CL8'AVOID  ',AL1(1,5,VIN,0),A($AVOID)                    22450000
+OPTENTLN EQU   *-OPTTBL           Length of an entry                    22460000
+         DC    CL8'BUFFER ',AL1(2,6,VCP,0),A($BUFFER)                   22470000
+         DC    CL8'CASE   ',AL1(2,4,VOUT,0),A($CASE)                    22480000
+         DC    CL8'CC     ',AL1(1,2,VPRINT,0),A($CC)                    22490000
+         DC    CL8'FIFO   ',AL1(1,4,VIN,0),A($FIFO)                     22500000
+         DC    CL8'FINIS  ',AL1(4,5,VDISKR+VDISKW,0),A($FINIS)          22510000
+         DC    CL8'FIND   ',AL1(2,4,VIN,0),A($FIND)                     22520000
+         DC    CL8'LIFO   ',AL1(1,4,VIN,0),A($LIFO)                     22530000
+         DC    CL8'LOCATE ',AL1(2,6,VIN,0),A($LOCATE)                   22540000
+         DC    CL8'MARGINS',AL1(1,7,VIN+VOUT,0),A($MARGINS)             22550000
+         DC    CL8'NOTYPE ',AL1(1,6,VIN+VOUT,0),A($NOTYPE)              22560000
+         DC    CL8'SKIP   ',AL1(2,4,VIN,0),A($SKIP)                     22570000
+         DC    CL8'STEM   ',AL1(2,4,VIN+VOUT,0),A($STEM)                22580000
+         DC    CL8'STRIP  ',AL1(1,5,VIN+VOUT,0),A($STRIP)               22590000
+         DC    CL8'STRING ',AL1(2,6,VCP+VOUT,0),A($STRING)              22600000
+         DC    CL8'VAR    ',AL1(3,3,VIN+VOUT,0),A($VAR)                 22610000
+         DC    CL8'ZONE   ',AL1(1,4,VIN,0),A($ZONE)                     22620000
+OPTTBLNE EQU   (*-OPTTBL)/OPTENTLN Number of entries                    22630000
+*                                                                       22640000
+*                            Valid call type bits                       22650000
+*                            show that a certain option                 22660000
+*                            is allowed for a certain                   22670000
+*                            call types                                 22680000
+VDISKR   EQU   X'80'                                                    22690000
+VCARD    EQU   X'40'                                                    22700000
+VCP      EQU   X'20'                                                    22710000
+VPUNCH   EQU   X'10'                                                    22720000
+VDISKW   EQU   X'08'                                                    22730000
+VEMSG    EQU   X'04'                                                    22740000
+VPRINT   EQU   X'02'                                                    22750000
+VIN      EQU   VDISKR+VCARD+VCP           Any input call type           22760000
+VOUT     EQU   VPUNCH+VDISKW+VEMSG+VPRINT Any output call type          22770000
+ TITLE 'EXECIO: Constants'                                              22780000
+*                                                                       22790000
+LINEDITP LINEDIT MF=L,MAXSUBS=5                                         22800000
+LINEDISZ EQU   *-LINEDITP                                               22810000
+ TITLE 'EXECIO: Constants and literals'                                 22820000
+*------------------------------------------------------------*          22830000
+*  Constants and Literals                                    *          22840000
+*------------------------------------------------------------*          22850000
+         DS    0D                                                       22860000
+EXECCOMM DC    CL8'EXECCOMM'                                            22870000
+         DC    XL8'FFFFFFFFFFFFFFFF'                                    22880000
+*                                                                       22890000
+MAXWORD  DC    A(X'7FFFFFFF')     Maximum positive integer              22900000
+*                                                                       22910000
+         LTORG ,                                                        22920000
+ TITLE 'EXECIO: File System Control Block'                              22930000
+         FSCBD ,                                                        22940000
+FSCBDLEN EQU   *-FSCBD                                                  22950000
+*                                                                       22960000
+         FSTD ,                                                         22970000
+ TITLE 'EXECIO: Shared Variable Communications Block'                   22980000
+         SHVBLOCK ,                                                     22990000
+*                                                                       23000000
+ TITLE 'EXECIO: Work Area Definitions'                                  23010000
+*------------------------------------------------------------*          23020000
+*  Program Work Areas                                        *          23030000
+*------------------------------------------------------------*          23040000
+WORKAREA DSECT                                                          23050000
+         DS    18A                                                      23060000
+*                                                                       23070000
+EXFSCB   DS    XL(FSCBDLEN)       Build FSCB here                       23080000
+EXFSTD   DS    XL(FSTDSIZE)       Fetch FST  here                       23090000
+NEXTREC  DS    H                  Read or write this file               23100000
+*                                    record number on next I/O          23110000
+DWORD    DS    D                  Doubleword work area                  23120000
+*                                                                       23130000
+RC       DS    F                  EXECIO Return code                    23140000
+*                                                                       23150000
+LINES    DS    F                  Number of lines to process            23160000
+OPTRET   DS    A                  Option handler return addr            23170000
+*                                                                       23180000
+FILEBUFA DS    A                  Buffer for CMS file I/O               23190000
+FILEBUFL DS    F                  Length of CMS file I/O buff           23200000
+FILERECL DS    F                  Length of CMS file record             23210000
+*                                                                       23220000
+STRINGBF DS    A                  Buffer for STRING value               23230000
+STRINGBL DS    F                  Length of string buffer               23240000
+*                                                                       23250000
+REXBUFF  DS    A                  Large buffer for REXX var             23260000
+REXBUFFL DS    F                  Length of REXX var buffer             23270000
+*                                                                       23280000
+CPBUFF   DS    A                  CP command response buffer            23290000
+CPBUFFL  DS    F                  CP command buffer size                23300000
+CPRESPNX DS    A                  CP response next line addr            23310000
+CPRESPRL DS    F                  CP response remaining length          23320000
+*                                                                       23330000
+FILTERA  DS    A                  Ptr to AVOID/FIND/LOCATE              23340000
+FILTERL  DS    F                    filter and length of it             23350000
+*                                                                       23360000
+MARGIN1  DS    F                  Selection column range                23370000
+MARGIN2  DS    F                                                        23380000
+*                                                                       23390000
+ZONE1    DS    F                  Search zone start column              23400000
+ZONE2    DS    F                  Search zone end column                23410000
+*                                                                       23420000
+VARNAMEA DS    A                  Address of VAR or STEM name           23430000
+VARNAMEL DS    F                  Length of the name                    23440000
+*                                                                       23450000
+OPTNAME  DS    CL8                                                      23460000
+*                                                                       23470000
+OPTBITS  DS    X                  Option bits                           23480000
+OPCASEU  EQU   X'80'                                                    23490000
+OPFINIS  EQU   X'40'                                                    23500000
+OPFIND   EQU   X'20'                                                    23510000
+OPLOCATE EQU   X'10'                                                    23520000
+OPAVOID  EQU   X'08'                                                    23530000
+OPTBITS2 DS    X                  Option bits 2                         23540000
+OPSKIP   EQU   X'80'                                                    23550000
+OPSTRIP  EQU   X'40'                                                    23560000
+OPNOTYPE EQU   X'20'                                                    23570000
+OPZONE   EQU   X'10'                                                    23580000
+OPMARGIN EQU   X'08'                                                    23590000
+OPTBITS3 DS    X                  Option bits 3                         23600000
+OPFIFO   EQU   X'80'              Input is from stack                   23610000
+OPLIFO   EQU   X'40'              Input is from stack                   23620000
+OPVAR    EQU   X'20'              Input is from REXX variable           23630000
+OPSTEM   EQU   X'10'              Input is from REXX stem               23640000
+OPSTRING EQU   X'08'              Input is from STRING                  23650000
+*                                                                       23660000
+CURROP   DS    X                  Current option bit flag               23670000
+*                                                                       23680000
+EPLENGTH DS    F                  Length of EPLIST args                 23690000
+EPLADDR  DS    A                  Address of large EPLIST               23700000
+EPLLEFT  DS    F                  Bytes left to scan in EPLIST          23710000
+EPLNXT   DS    A                  Address of next byte to scan          23720000
+EPLTOKEN DS    CL8                Last token scaned from EPLIST         23730000
+EPLLOCAL DS    CL(2*80)           EPLIST saved uppercase copy           23740000
+*                                 +EPLENGTH is lowercase copy           23750000
+*                                                                       23760000
+CVBSAVE  DS    8A                 Hold R14-R5 in CVB                    23770000
+REXSAVE  DS    8A                 Hold R14-R5 in GETREXXV               23780000
+*                                            and PUTREXXV               23790000
+SAVEAREA DS    15A                Save area for R14-R12                 23800000
+*                                                                       23810000
+PLISTBLD DS    0D                 Various plists built here             23820000
+         DS    5D                                                       23830000
+LINEDITL LINEDIT MF=L,MAXSUBS=5                                         23840000
+*                                                                       23850000
+RDTERME  DS    0D                                                       23860000
+         DC    CL8'WAITRD'                                              23870000
+         DC    AL1(1)                                                   23880000
+         DC    AL3(*-*)           Address of input line                 23890000
+         DS    C'T'               No uppercase or blank fill            23900000
+         DC    AL3(*-*)           Count returned here                   23910000
+*                                                                       23920000
+SHEPLIST DS    A                  EPLIST for EXECCOMM call              23930000
+         DS    A                                                        23940000
+         DS    A                                                        23950000
+SHEPL4   DS    A                                                        23960000
+*                                                                       23970000
+SHVAREA  DS    ((SHVBLEN+7)/8)D   SHVBLOCK build area                   23980000
+*                                                                       23990000
+STEMNEXT DS    F                  Next stem index to use                24000000
+STEMMAXI DS    F                  Max stem index in binary              24010000
+STEMNAML DS    F                  Stem element name length              24020000
+STEMNAMC DS    CL8                Stem index number in EBCDIC           24030000
+STEMNAME DS    CL80               Stem element name                     24040000
+*                                                                       24050000
+CC       DS    X                  Carriage control value                24060000
+*                                                                       24070000
+         DS    0D                                                       24080000
+BUFFER   DS    CL256                                                    24090000
+WORKSIZE EQU   *-WORKAREA                                               24100000
+         REGEQU ,                                                       24110000
+         AFT ,                                                          24120000
+         NUCON ,                                                        24130000
+         END                                                            24140000

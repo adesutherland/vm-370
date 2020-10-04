@@ -1,0 +1,6 @@
+./ I 161200 $ 161300 100
+         JFUN  DROPBUF,DMSBUFDB                                HRC406DS
+./ I 178000 $ 178100 100
+         JFUN  MAKEBUF,DMSBUFMK                                HRC406DS
+./ I 189000 $ 189100 100
+         JFUN  SENTRIES,DMSBUFSE                               HRC406DS

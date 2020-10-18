@@ -21,7 +21,7 @@ rm vm370.zip
 (cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
 
 # YATA UBUNTU
-wget -nv https://github.com/adesutherland/yata/releases/download/v1.2.3/YATA-Ubuntu.zip
+wget -nv https://github.com/adesutherland/yata/releases/download/v1.2.4/YATA-Ubuntu.zip
 unzip YATA-Ubuntu.zip
 chmod +x YATA-Ubuntu/yata
 cp YATA-Ubuntu/yata /usr/local/bin
@@ -29,7 +29,7 @@ rm -r YATA-Ubuntu
 rm YATA-Ubuntu.zip
 
 # YATA CMS
-wget -nv https://github.com/adesutherland/yata/releases/download/v1.2.3/YATA-CMS.zip
+wget -nv https://github.com/adesutherland/yata/releases/download/v1.2.4/YATA-CMS.zip
 unzip YATA-CMS.zip
 chmod +x YATA-CMS/cmsinstall.sh
 mkdir io
@@ -211,7 +211,7 @@ rm GCCLIB.zip
 
 # CMS BREXX
 (cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
-wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v0.9.8/BREXX.zip
+wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/f0022/BREXX.zip
 unzip BREXX.zip
 chmod +x BREXX/cmsinstall.sh
 mkdir io

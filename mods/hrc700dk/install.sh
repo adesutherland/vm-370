@@ -22,7 +22,7 @@ herccontrol "/read *" -w "^Ready;"
 herccontrol "/yata -x" -w "^Ready;"
 herccontrol "/erase yata txt a" -w "^Ready;"
 
-# Access the CP modifications disk for write (and make A -> C)
+# Access the CP modifications disk for write (and mods A -> C)
 herccontrol "/access 094 a" -w "^Ready;"
 herccontrol "/access 191 c" -w "^Ready;"
 

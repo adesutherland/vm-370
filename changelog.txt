@@ -1,6 +1,8 @@
 VM/370 Docker Container - Changelog
 ===================================
 
+1.4.26 - BREXX F0023
+
 1.4.25 - BREXX F0022
          YATA v1.2.4
          Updated local build scripts

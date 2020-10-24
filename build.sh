@@ -211,7 +211,7 @@ rm GCCLIB.zip
 
 # CMS BREXX
 (cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
-wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/f0023/BREXX.zip
+wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v0023/BREXX.zip
 unzip BREXX.zip
 chmod +x BREXX/cmsinstall.sh
 mkdir io

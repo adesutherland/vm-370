@@ -1,0 +1,9 @@
+./ I 98120 $ 98122 2
+         CLM   R11,B'1000',=X'05' Calltype 5??                 HRC408DS
+         BE    CHKREXX        Always call REXX for X'05'calls  HRC408DS
+./ I 98420 $ 98422 2
+CHKREXX  DS    0H                                              HRC408DS
+./ I 98495 $ 98497 1
+*                                                              HRC408DS
+         CLM   R11,B'1000',=X'05' Calltype 5??                 HRC408DS
+         BE    NOIMPLD        No EPLIST rebuild needed         HRC408DS

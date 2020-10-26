@@ -190,6 +190,39 @@ chmod +x *.sh
 herccontrol "exit"
 cd ..
 
+cd hrc408ds
+(cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
+dos2unix *.sh
+chmod +x *.sh
+../iplmaint.sh
+./install.sh
+../buildnuc.sh
+../shutdown.sh
+herccontrol "exit"
+cd ..
+
+cd hrc409ds
+(cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
+dos2unix *.sh
+chmod +x *.sh
+../iplmaint.sh
+./install.sh
+../buildnuc.sh
+../shutdown.sh
+herccontrol "exit"
+cd ..
+
+cd hrc410ds
+(cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
+dos2unix *.sh
+chmod +x *.sh
+../iplmaint.sh
+./install.sh
+../buildnuc.sh
+../shutdown.sh
+herccontrol "exit"
+cd ..
+
 cd ..
 
 # Now load packages

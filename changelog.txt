@@ -4,6 +4,7 @@ VM/370 Docker Container - Changelog
 1.4.27 - MOD HRC408DS
          MOD HRC409DS
          MOD HRC410DS
+         GCCLIB F0045
 
 1.4.26 - BREXX F0023
 

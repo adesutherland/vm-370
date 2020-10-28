@@ -1,17 +1,15 @@
 VM/370 Docker Container - Changelog
 ===================================
 
+1.4.28 - GCCLIB F0046
 1.4.27 - MOD HRC408DS
          MOD HRC409DS
          MOD HRC410DS
          GCCLIB F0045
-
 1.4.26 - BREXX F0023
-
 1.4.25 - BREXX F0022
          YATA v1.2.4
          Updated local build scripts
-
 1.4.24 - EXECIO
          HRC406DS - MAKEBUF, DROPBUF, and SENTRIES
          HRC407DS - SET/QUERY EXECTRAC

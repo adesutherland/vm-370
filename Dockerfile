@@ -26,7 +26,7 @@ RUN /opt/hercules/vm370/build.sh && \
 FROM ubuntu:latest
 
 RUN	apt-get update && \
-    apt-get install --no-install-recommends -y hercules c3270 zip unzip netcat && \
+    apt-get install --no-install-recommends -y hercules c3270 zip unzip netcat dos2unix && \
     apt-get -y purge $(dpkg --get-selections | grep deinstall | sed s/deinstall//g) && \
     rm -rf /var/lib/apt/lists/*
 

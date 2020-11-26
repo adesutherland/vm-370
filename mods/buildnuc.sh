@@ -38,7 +38,7 @@ herccontrol "/59"
 herccontrol "/yes"
 
 # DMSINI611R VERSION IDENTIFICATION =
-herccontrol "/CMS VERSION 6.0 DOCKER 1.4.28"
+herccontrol "/CMS VERSION 6.0 DOCKER 1.4.29"
 
 # DMSINI612R INSTALLATION HEADING =
 herccontrol "/Conversional Monitor System"

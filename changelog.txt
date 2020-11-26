@@ -1,6 +1,11 @@
 VM/370 Docker Container - Changelog
 ===================================
 
+1.4.29 - GCCLIB v0.8.1
+         BREXX v0.9.9
+         Add dos2unix
+         MOD HRC409DS - Fix Crash when calling non-existing
+                        command via address cms #6
 1.4.28 - GCCLIB F0046
 1.4.27 - MOD HRC408DS
          MOD HRC409DS

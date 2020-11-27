@@ -1,0 +1,14 @@
+./ I 1460000 $ 1460100 100
+*                                                              HRC409DS
+         TM    MISFLAGS,NEGITS    Error in a CMS command?      HRC409DS
+         BNO   CSFDONE            Normal flow if not           HRC409DS
+         LTR   R15,R15            Check for negative RC?       HRC409DS
+         BNM   CSFDONE            Normal flow if not           HRC409DS
+*                                                              HRC409DS
+         LA    R1,CMNDLIST        Address of command line      HRC409DS
+         L     R15,=V(DMSCPF)     Try as a CP command          HRC409DS
+         BALR  R14,R15                                         HRC409DS
+         CH    R15,=H'1'          Does RC say 'Unknown cmd'?   HRC409DS
+         BNE   CSFDONE            Done here if not             HRC409DS
+         LA    R15,3                                           HRC409DS
+         LNR   R15,R15            Make it a -3 for REXX        HRC409DS

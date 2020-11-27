@@ -1,8 +1,7 @@
 #!/bin/sh
-# HRC700DK Mod - Contributed by Bob Bolch
+# HRC409DS Mod
 # Predicate - logged on as MAINT
-#           - Needs buildcp.sh run afterwards
-## NOTE: CP MOD ##
+#           - Needs buildnuc.sh run afterwards
 
 # Exit if there is an error
 set -e
@@ -22,17 +21,16 @@ herccontrol "/read *" -w "^Ready;"
 herccontrol "/yata -x" -w "^Ready;"
 herccontrol "/erase yata txt a" -w "^Ready;"
 
-# Access the CP modifications disk for write (and mods A -> C)
-herccontrol "/access 094 a" -w "^Ready;"
-herccontrol "/access 191 c" -w "^Ready;"
+# Access the CMS local modifications disk for write
+herccontrol "/access 093 b" -w "^Ready;"
 
-# Add the requred change to the top of each file
-herccontrol "/edit DMKHVD AUXHRC A (nodisp" -w "^EDIT:"
+# Add the required change to the top of each file
+herccontrol "/edit DMSCSF AUXHRC B (nodisp" -w "^EDIT:"
 herccontrol "/input" -w "^INPUT:"
-herccontrol "/HRC700DK V01 Support for DIAG00 to return timezone offset"
+herccontrol "/HRC409DS V01 Pass QUERY & SET cmd to CP if no CMS operand found"
 herccontrol "/" -w "^EDIT:"
 herccontrol "/file" -w "^Ready;"
 
 # Install Mod
 herccontrol "/install" -w "^Ready;"
-herccontrol "/erase install exec c" -w "^Ready;"
+herccontrol "/erase install exec a" -w "^Ready;"

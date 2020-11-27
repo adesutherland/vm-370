@@ -1,0 +1,89 @@
+This update corrects a defect in the HRC404DS modification.
+That update modified the way 'address CMS' support works
+in BREXX. When the CMS QUERY and SET commands were issued
+with 'address CMS', and CP SET or QUERY operands were
+specified, those commands were not passed to CP correctly.
+ 
+This update fixes errors in the HRC404DS update.
+ 
+Updates for assemble files:
+ 
+DMSCSF   HRC409DS
+ 
+ 
+Steps to apply:
+ 
+1. Add the line below, as the top line in the top level AUX file for
+   the changed files listed above: (In an unmodified Sixpack, the
+   top level AUX file has filetype AUXHRC.)
+ 
+HRC409DS V01 Pass QUERY & SET cmd to CP if no CMS operand found
+ 
+2. Recompile all new or updated assembler files. (In an unmodified
+   Sixpack, the assembler source control file is DMSHRC CNTRL.)
+ 
+   VMFASM DMSCSF DMSHRC
+ 
+3. Rebuild the CMS nucleus using VMFLOAD with the
+   CMSLOAD EXEC build list, and IPL the nucleus
+   punch file to write the CMS nucleus on the disk.
+ 
+   spool punch *                       <-- send the CMS nucleus card image file
+                                              to the spool input queue
+   Ready; T=0.01/0.01 03:30:29
+ 
+   vmfload cmsload dmshrc              <--create the CMS nucleus card image file
+   SYSTEM LOAD DECK COMPLETE
+   PUN FILE 0709  TO  MAINT    COPY 01 NOHOLD  <--- '709' is the spool file number
+   Ready; T=0.12/0.36 03:30:47                       for the CMS Nucleus card deck
+ 
+   order rdr 709                       <--place the specific spool file at the top of
+   0001 FILE  ORDERED                   queue of spool files to read
+   Ready; T=0.01/0.01 03:30:54
+ 
+   ipl 00C clear                       <--perform an Initial Program Load for the
+                                          CMS Nucleus card file and answer the prompts.
+   DMSINI606R SYSTEM DISK ADDRESS =
+   190
+   DMSINI615R Y-DISK ADDRESS =
+   19e
+   DMSINI607R REWRITE THE NUCLEUS ?
+   yes
+   DMSINI608R IPL DEVICE ADDRESS =
+   190
+   DMSINI609R NUCLEUS CYL ADDRESS =
+   59
+   DMSINI610R ALSO IPL CYLINDER 0 ?
+   yes
+   DMSINI611R VERSION IDENTIFICATION =
+   vm/370 Sixpack Test System          <-- set an up to 32 character msg shown when CMS is loaded by IPL
+   DMSINI612R INSTALLATION HEADING =
+   Conversional Monitor System         <-- set an up to 64 character msg placed on PRINT command output
+   VM/370 SIXPACK TEST SYSTEM
+ 
+   Y (19E) R/O
+ 
+   +-----------------------------------------------------------------------------+
+   ]          Welcome to VM/370 and VM/380 "SixPack" version 1.3!                ]
+   +-----------------------------------------------------------------------------+
+ 
+   Ready; T=0.01/0.05 03:32:26
+ 
+   spool printer * close                                   <-- save the CMS LOADMAP
+   PRT FILE 0711  TO  MAINT    COPY 01 NOHOLD                  to disk by ORDERing it to
+   Ready; T=0.01/0.01 03:32:38                                 the front of the reader queue
+ 
+4. Resave the CMS saved segment.
+ 
+   ipl 190 clear
+   VM/370 SIXPACK TEST SYSTEM
+   savesys cms                         <-- Must be the first command after IPL
+   SYSTEM SAVED
+   VM/370 SIXPACK TEST SYSTEM
+ 
+   Y (19E) R/O
+ 
+   +-----------------------------------------------------------------------------+
+   ]          Welcome to VM/370 and VM/380 "SixPack" version 1.3!                ]
+   +-----------------------------------------------------------------------------+
+   Ready; T=0.01/0.04 03:33:02

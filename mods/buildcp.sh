@@ -5,7 +5,7 @@
 # Exit if there is an error
 set -e
 
-# Access the CP modifications disk for write (and make A -> C)
+# Access the CP modifications disk for write (and mods A -> C)
 herccontrol "/access 094 a" -w "^Ready;"
 herccontrol "/access 191 c" -w "^Ready;"
 

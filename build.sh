@@ -190,13 +190,46 @@ chmod +x *.sh
 herccontrol "exit"
 cd ..
 
+cd hrc408ds
+(cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
+dos2unix *.sh
+chmod +x *.sh
+../iplmaint.sh
+./install.sh
+../buildnuc.sh
+../shutdown.sh
+herccontrol "exit"
+cd ..
+
+cd hrc409ds
+(cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
+dos2unix *.sh
+chmod +x *.sh
+../iplmaint.sh
+./install.sh
+../buildnuc.sh
+../shutdown.sh
+herccontrol "exit"
+cd ..
+
+cd hrc410ds
+(cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
+dos2unix *.sh
+chmod +x *.sh
+../iplmaint.sh
+./install.sh
+../buildnuc.sh
+../shutdown.sh
+herccontrol "exit"
+cd ..
+
 cd ..
 
 # Now load packages
 
 # GCCLIB
 (cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
-wget -nv https://github.com/adesutherland/CMS-370-GCCLIB/releases/download/v0.8.0/GCCLIB.zip
+wget -nv https://github.com/adesutherland/CMS-370-GCCLIB/releases/download/v0.8.1/GCCLIB.zip
 unzip GCCLIB.zip
 chmod +x GCCLIB/cmsinstall.sh
 mkdir io
@@ -211,7 +244,7 @@ rm GCCLIB.zip
 
 # CMS BREXX
 (cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
-wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v0023/BREXX.zip
+wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v0.9.9/BREXX.zip
 unzip BREXX.zip
 chmod +x BREXX/cmsinstall.sh
 mkdir io

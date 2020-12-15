@@ -1,6 +1,9 @@
 VM/370 Docker Container - Changelog
 ===================================
 
+1.4.30 - GCCLIB v0.8.2
+         BREXX v0.9.10
+
 1.4.29 - GCCLIB v0.8.1
          BREXX v0.9.9
          Add dos2unix

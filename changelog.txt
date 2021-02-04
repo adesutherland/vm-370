@@ -1,6 +1,9 @@
 VM/370 Docker Container - Changelog
 ===================================
 
+1.4.31 - GCCLIB v0.8.3
+         BREXX v0.9.11
+
 1.4.30 - GCCLIB v0.8.2
          BREXX v0.9.10
 

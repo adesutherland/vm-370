@@ -229,7 +229,7 @@ cd ..
 
 # GCCLIB
 (cd /opt/hercules/vm370; hercules -f hercules.conf -d >/dev/null 2>/dev/null &)
-wget -nv https://github.com/adesutherland/CMS-370-GCCLIB/releases/download/v0.8.3/GCCLIB.zip
+wget -nv https://github.com/adesutherland/CMS-370-GCCLIB/releases/download/v0.8.4/GCCLIB.zip
 unzip GCCLIB.zip
 chmod +x GCCLIB/cmsinstall.sh
 mkdir io

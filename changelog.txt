@@ -1,6 +1,10 @@
 VM/370 Docker Container - Changelog
 ===================================
 
+1.5.1 - CE 1.0
+        HercControl v1.1.0
+        YATA v1.2.5
+
 1.4.32 - GCCLIB v0.8.4
 
 1.4.31 - GCCLIB v0.8.3

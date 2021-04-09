@@ -1,8 +1,0 @@
-./ I 00040000 $ 40100 100
-         EXTRN DMKSYSTZ                                        HRC700DK
-./ I 00656000 $ 656100 100
-         XC    32(8,R3),32(R3)     Clear it out                HRC700DK
-         L     R15,=A(DMKSYSTZ)    Get ptr to Time Zone Offset HRC700DK
-         MVC   32(4,R3),0(R15)     Copy the offset             HRC700DK
-./ R 01738000 $ 1738100 100
-EXTIDL   EQU   40             LENGTH OF BUFFER FOR DIAG X'00'  HRC400DK

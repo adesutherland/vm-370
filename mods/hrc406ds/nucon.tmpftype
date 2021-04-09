@@ -1,6 +1,0 @@
-./ I 448000 $ 448100 100
-         ORG   NUCON+X'D60'                                    HRC406DS
-NUCFSTLN DC    A(0)               First line in program stack  HRC406DS
-NUCLSTLN DC    A(0)               Last line in program stack   HRC406DS
-NUCNLSTK DC    A(0)               Count of lines in pgm stack  HRC406DS
-NUCNBSTK DC    A(0)               Number of program stack      HRC406DS

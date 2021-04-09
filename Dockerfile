@@ -3,30 +3,33 @@ FROM	ubuntu:latest
 
 RUN	apt-get update
 RUN apt-get install --no-install-recommends -y unzip wget netcat ca-certificates
-RUN apt-get install --no-install-recommends -y hercules dos2unix
+RUN apt-get install --no-install-recommends -y hercules dos2unix regina-rexx
 
 WORKDIR     /opt/hercules/vm370
 
 # Local Config files
-COPY *.sh hercules.conf ./
-RUN dos2unix *.sh hercules.conf
+COPY *.sh hercules.conf cleandisks.conf ./
+RUN dos2unix *.sh hercules.conf cleandisks.conf
 RUN chmod +x *.sh && \
-	  chmod -x hercules.conf
+	  chmod -x hercules.conf cleandisks.conf
 
-# VM/370 Mods
-COPY mods/ ./mods/
-RUN dos2unix ./mods/*.sh
-RUN chmod +x ./mods/*.sh
+# DASD
+COPY disks/ ./disks/
 
 # Build & Sanity Test VM/370 Host
 RUN /opt/hercules/vm370/build.sh && \
     rm /opt/hercules/vm370/build.sh
 
+# Cleanup
+RUN rm -r ./disks
+RUN rm cleandisks.conf
+
+
 # Create the final Docker Image
 FROM ubuntu:latest
 
 RUN	apt-get update && \
-    apt-get install --no-install-recommends -y hercules c3270 zip unzip netcat dos2unix && \
+    apt-get install --no-install-recommends -y hercules c3270 zip unzip netcat dos2unix regina-rexx && \
     apt-get -y purge $(dpkg --get-selections | grep deinstall | sed s/deinstall//g) && \
     rm -rf /var/lib/apt/lists/*
 

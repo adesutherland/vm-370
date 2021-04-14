@@ -29,7 +29,8 @@ RUN rm cleandisks.conf
 FROM ubuntu:latest
 
 RUN	apt-get update && \
-    apt-get install --no-install-recommends -y hercules c3270 zip unzip netcat dos2unix regina-rexx && \
+    apt-get install --no-install-recommends -y hercules c3270 zip unzip netcat \
+    dos2unix regina-rexx wget ca-certificates && \
     apt-get -y purge $(dpkg --get-selections | grep deinstall | sed s/deinstall//g) && \
     rm -rf /var/lib/apt/lists/*
 

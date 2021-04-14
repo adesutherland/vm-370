@@ -1,7 +1,7 @@
 #!/bin/sh
 # Script to update container repositories
 
-TAG=1.5.1
+TAG=1.5.2
 # Docker Tagging (builder, test and latest)
 docker pull adriansutherland/vm370:$TAG
 docker tag adriansutherland/vm370:$TAG adriansutherland/vm370:builder

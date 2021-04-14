@@ -1,7 +1,7 @@
 #!/bin/sh
 # Make Hercules Docker Distribution
 
-# Exit of there is an error
+# Exit if there is an error
 set -e
 
 # HercControl
@@ -31,6 +31,15 @@ cp YATA-Ubuntu/yata /usr/local/bin
 rm -r YATA-Ubuntu
 rm YATA-Ubuntu.zip
 
+# Get latest gccbrx.cckd
+herccontrol "detach 09F0"
+wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/f0049.2/BREXX.zip
+unzip BREXX.zip
+cp BREXX/gccbrx.cckd .
+rm BREXX.zip
+rm -r BREXX
+herccontrol "attach 09F0 3350 gccbrx.cckd"
+
 # YATA CMS
 wget -nv https://github.com/adesutherland/yata/releases/download/v1.2.5/YATA-CMS.zip
 unzip YATA-CMS.zip
@@ -57,10 +66,21 @@ herccontrol "/detach 181" -w "^Ready;"
 herccontrol "/yata -v" -w "^Ready;"
 herccontrol "/logoff" -w "^VM/370 Online"
 
+# REBUILD CMS
+herccontrol "/logon maint cpcms" -w "^CMS"
+herccontrol "/" -w "^Ready"
+herccontrol "/NEWBREXX" -w "^Ready"
+herccontrol "/define storage 16m"  -w "CP ENTERED"
+herccontrol "/ipl 190 clear" -w "^CMS"
+herccontrol "/savesys cms" -w "^CMS"
+herccontrol "/" -w "^Ready;"
+herccontrol "/logoff" -w "^VM/370 Online"
+
 # SHUTDOWN
 herccontrol "/logon operator operator" -w "RECONNECTED AT"
 herccontrol "/shutdown" -w "^HHCCP011I"
 
+# Remove temp YATA download
 cd ..
 rm -r io
 rm -r YATA-CMS

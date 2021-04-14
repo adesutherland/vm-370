@@ -1,6 +1,13 @@
 VM/370 Docker Container - Changelog
 ===================================
 
+1.5.2 - CE 1.0
+        HercControl v1.1.0
+        YATA v1.2.5
+        wget added to docker host
+        bREXX 1.0.0 (f0049.2)
+        GCCLIB 1.0.0 (f0054.3)
+
 1.5.1 - CE 1.0
         HercControl v1.1.0
         YATA v1.2.5

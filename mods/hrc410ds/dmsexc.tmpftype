@@ -1,4 +1,0 @@
-./ I 00220000 $ 220100 100
-         ST    R12,EXRLVL     Set zero REXX Execution level    HRC410DS
-* Clear flags froM TS and HI immediate commands                HRC410DS
-         NI    EXECFLAG,X'FF'-EXECTRAC-EXECHALT                HRC410DS

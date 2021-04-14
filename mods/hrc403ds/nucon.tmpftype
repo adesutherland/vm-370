@@ -1,9 +1,0 @@
-./ I 444600 $ 444610 10
-         ORG   NUCON+X'E08'                                    HRC403DS
-./ R 445000 447000 $ 500000 1000
-         EJECT                                                 HRC403DS
-         ORG   NUCON+X'1000'  Reserve the whole page           HRC403DS
-NUCONLEN EQU   *-NUCON        Length of NUCON in bytes         HRC403DS
-         EJECT                                                 HRC403DS
-         POP   PRINT                                           HRC403DS
-         MEND                                                  HRC403DS

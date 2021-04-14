@@ -33,7 +33,7 @@ rm YATA-Ubuntu.zip
 
 # Get latest gccbrx.cckd
 herccontrol "detach 09F0"
-wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/f0049.2/BREXX.zip
+wget -nv https://github.com/adesutherland/CMS-370-BREXX/releases/download/v1.0.0/BREXX.zip
 unzip BREXX.zip
 cp BREXX/gccbrx.cckd .
 rm BREXX.zip

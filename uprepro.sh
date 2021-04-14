@@ -1,19 +1,19 @@
 #!/bin/sh
 # Script to update container repositories
 
-TAG=1.5.2
+TAG=1.5.3
 # Docker Tagging (builder, test and latest)
 docker pull adriansutherland/vm370:$TAG
 docker tag adriansutherland/vm370:$TAG adriansutherland/vm370:builder
 docker push adriansutherland/vm370:builder
 
-#docker pull adriansutherland/vm370:$TAG
-#docker tag adriansutherland/vm370:$TAG adriansutherland/vm370:test
-#docker push adriansutherland/vm370:test
+docker pull adriansutherland/vm370:$TAG
+docker tag adriansutherland/vm370:$TAG adriansutherland/vm370:test
+docker push adriansutherland/vm370:test
 
-#docker pull adriansutherland/vm370:$TAG
-#docker tag adriansutherland/vm370:$TAG adriansutherland/vm370:latest
-#docker push adriansutherland/vm370:latest
+docker pull adriansutherland/vm370:$TAG
+docker tag adriansutherland/vm370:$TAG adriansutherland/vm370:latest
+docker push adriansutherland/vm370:latest
 
 # Upload Image to Google Cloud
 # GCLOUD SDK needs to be installed, then linked to Docker Desktop
